@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import About from "./About";
-import { PatchOnBox, SmallPatch } from "./Patch";
+import { RobotOnBox, SmallRobot } from "./Robot";
 
 const DOCUMENT_RETRIEVER = "Document_retriever";
 const CHUNK_RETRIEVER = "Chunk_retriever";
@@ -165,14 +165,14 @@ export default function ChatUI() {
     return (
       <>
         <main className="hero">
-          <h1 className="rise d1">An AI agent that answers questions about RAG.</h1>
-          <p className="lede rise d2">
-            So far it has 3,083 research papers from arXiv. The goal is to make it easy for engineers to find literature-backed answers to specific design choices.
-          </p>
-          <div className="seat rise d3">
-            <PatchOnBox />
+          <h1 className="rise d1">Ask any question about RAG</h1>
+          <div className="seat rise d2">
+            <RobotOnBox />
             <AskBox id="first-question" placeholder="Ask a question..." loading={loading} onAsk={ask} />
           </div>
+          <p className="lede rise d3">
+            So far it has 3,083 research papers from arXiv. The goal is to make it easy for engineers to find literature-backed answers to specific design choices.
+          </p>
         </main>
 
         <About onStart={focusQuestionBox} />
@@ -197,7 +197,7 @@ export default function ChatUI() {
             <h2 className="q">{turn.query}</h2>
             {turn.status && (
               <div className="who working">
-                <SmallPatch />
+                <SmallRobot />
                 <span>{turn.status}</span>
               </div>
             )}

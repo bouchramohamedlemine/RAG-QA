@@ -82,7 +82,7 @@ where $d$ is the parent document, $c$ is the chunk, and $\text{sim}(c,q)$ is the
 
 ### Answer Generation
 
-The top 10 chunks' content is passed as context to the language model (gpt-4o-mini). If a question cannot be answered from the documents, we rely on the parametric knowledge of the model to generate the answer. The model is good at concept explanation, comparison between methods, and also evidence providing. It is instructed to name the paper behind each finding, not to present one paper's result as a general rule, and to say when papers disagree or when it uses its own knowledge.
+The top 10 chunks' content is passed as context to the language model (gpt-4o-mini). If a question cannot be answered from the documents, the model says so instead of using its own parametric knowledge. The model is good at concept explanation, comparison between methods, and also evidence providing. It is instructed to name the paper behind each finding, not to present one paper's result as a general rule, and to say when papers disagree.
 
 
 

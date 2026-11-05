@@ -1,14 +1,14 @@
-// The pipeline, drawn for the page: a wide layout for larger screens and a tall one for phones.
+// The pipeline, in the style of the original diagram: a wide layout for larger screens and a tall one for phones.
 
 const DESCRIPTION =
-  "A user query goes to the document retriever. Semantic and lexical search are fused with RRF, the top k documents are reranked, and relative thresholding selects m documents. The chunk retriever combines each chunk's similarity score with its document score, the top n chunks go to the generator, and the generator writes the answer.";
+  "A user query goes to the document retriever. Semantic and lexical search each return their top k documents, which are fused with RRF and reranked, and relative thresholding selects m documents. The chunk retriever combines each chunk's similarity score with its document score, the top n chunks go to the generator, and the generator writes the answer.";
 
-function Text({ x, y, lines, className, anchor = "middle" }: { x: number; y: number; lines: string[]; className: string; anchor?: "middle" | "start" }) {
-  const top = y - ((lines.length - 1) * 15.5) / 2;
+function Text({ x, y, lines, gap, className }: { x: number; y: number; lines: string[]; gap: number; className: string }) {
+  const top = y - ((lines.length - 1) * gap) / 2;
   return (
-    <text textAnchor={anchor} className={className}>
+    <text textAnchor="middle" className={className}>
       {lines.map((line, i) => (
-        <tspan key={line} x={x} y={top + i * 15.5} dy="0.35em">
+        <tspan key={line} x={x} y={top + i * gap} dy="0.35em">
           {line}
         </tspan>
       ))}
@@ -16,20 +16,32 @@ function Text({ x, y, lines, className, anchor = "middle" }: { x: number; y: num
   );
 }
 
-function Part({ x, y, w, h, lines }: { x: number; y: number; w: number; h: number; lines: string[] }) {
+type BoxProps = { x: number; y: number; w: number; h: number; lines: string[]; gap: number; radius: number; shaded?: boolean };
+
+function Box({ x, y, w, h, lines, gap, radius, shaded }: BoxProps) {
   return (
     <>
-      <rect className="part" x={x} y={y} width={w} height={h} rx={10} />
-      <Text x={x + w / 2} y={y + h / 2} lines={lines} className="part-name" />
+      <rect className={shaded ? "shape shaded" : "shape"} x={x} y={y} width={w} height={h} rx={radius} />
+      <Text x={x + w / 2} y={y + h / 2} lines={lines} gap={gap} className="name" />
     </>
   );
 }
 
-function Flows({ id, paths }: { id: string; paths: string[] }) {
+function Multiply({ cx, cy, r }: { cx: number; cy: number; r: number }) {
+  const d = r * 0.707;
+  return (
+    <>
+      <circle className="shape" cx={cx} cy={cy} r={r} />
+      <path className="shape" d={`M${cx - d} ${cy - d} L${cx + d} ${cy + d} M${cx + d} ${cy - d} L${cx - d} ${cy + d}`} />
+    </>
+  );
+}
+
+function Flows({ id, size, paths }: { id: string; size: number; paths: string[] }) {
   return (
     <>
       <defs>
-        <marker id={id} viewBox="0 0 10 10" refX="8" refY="5" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" orient="auto">
+        <marker id={id} viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth={size} markerHeight={size} orient="auto">
           <path d="M1 1 9 5 1 9z" className="head" />
         </marker>
       </defs>
@@ -41,79 +53,89 @@ function Flows({ id, paths }: { id: string; paths: string[] }) {
 }
 
 function Wide() {
+  const box = { gap: 32, radius: 16 };
+  const label = { gap: 28, className: "label" };
   return (
-    <svg className="wide" viewBox="0 0 752 262" role="img" aria-label={DESCRIPTION}>
+    <svg className="wide" viewBox="0 0 1360 462" role="img" aria-label={DESCRIPTION}>
       <Flows
         id="head-wide"
+        size={24}
         paths={[
-          "M62 60 H108",
-          "M206 50 C244 14 296 14 328 50",
-          "M206 70 C244 106 296 106 328 70",
-          "M364 60 H446",
-          "M506 60 H636",
-          "M672 84 V174",
-          "M624 190 C586 154 510 154 472 190",
-          "M624 210 C586 246 510 246 472 210",
-          "M444 200 H268",
-          "M170 200 H94",
+          "M152 100 H232",
+          "M392 50 H606 Q620 50 620 64 V74",
+          "M392 150 H606 Q620 150 620 136 V126",
+          "M676 100 H810",
+          "M960 100 H1200",
+          "M1279 160 V300",
+          "M1200 308 H894 Q880 308 880 322 V336",
+          "M1200 412 H894 Q880 412 880 398 V384",
+          "M856 360 H620",
+          "M470 360 H320",
         ]}
       />
 
-      <Text x={30} y={60} lines={["User", "query"]} className="step" />
-      <Part x={110} y={36} w={96} h={48} lines={["Document", "Retriever"]} />
-      <Text x={268} y={12} lines={["Semantic search"]} className="tag" />
-      <Text x={268} y={108} lines={["Lexical search"]} className="tag" />
-      <Text x={345} y={60} lines={["RRF"]} className="step" />
-      <Text x={405} y={46} lines={["Top k docs"]} className="tag" />
-      <Text x={476} y={60} lines={["Rerank"]} className="step" />
-      <Text x={570} y={38} lines={["Relative", "thresholding"]} className="tag" />
-      <Text x={672} y={60} lines={["Selected", "m docs"]} className="step" />
-      <Part x={624} y={176} w={96} h={48} lines={["Chunk", "Retriever"]} />
-      <Text x={548} y={152} lines={["Chunk similarity score"]} className="tag" />
-      <Text x={548} y={250} lines={["Document score"]} className="tag" />
-      <Text x={458} y={200} lines={["×"]} className="times" />
-      <Text x={357} y={186} lines={["Select top n chunks"]} className="tag" />
-      <Part x={170} y={176} w={96} h={48} lines={["Generator"]} />
-      <Text x={62} y={200} lines={["Answer"]} className="step" />
+      <Box x={2} y={40} w={150} h={120} lines={["User query"]} {...box} />
+      <Box x={232} y={40} w={160} h={120} lines={["Document", "Retriever"]} shaded {...box} />
+      <ellipse className="shape" cx={620} cy={100} rx={56} ry={26} />
+      <Text x={620} y={100} lines={["RRF"]} gap={32} className="name" />
+      <Box x={810} y={40} w={150} h={120} lines={["Rerank"]} {...box} />
+      <Box x={1200} y={40} w={158} h={120} lines={["Selected m", "docs"]} {...box} />
+      <Box x={1200} y={300} w={158} h={120} lines={["Chunk", "Retriever"]} shaded {...box} />
+      <Multiply cx={880} cy={360} r={24} />
+      <Box x={470} y={300} w={150} h={120} lines={["Generator"]} shaded {...box} />
+      <Box x={170} y={300} w={150} h={120} lines={["Answer"]} {...box} />
+
+      <Text x={499} y={50} lines={["Semantic search"]} {...label} />
+      <Text x={499} y={150} lines={["lexical search"]} {...label} />
+      <Text x={499} y={100} lines={["Top k docs"]} {...label} />
+      <Text x={1080} y={78} lines={["relative thresholding"]} {...label} />
+      <Text x={1045} y={308} lines={["Chunk similarity score"]} {...label} />
+      <Text x={1045} y={412} lines={["document score"]} {...label} />
+      <Text x={738} y={338} lines={["select top n chunks"]} {...label} />
     </svg>
   );
 }
 
 function Tall() {
+  const box = { gap: 17, radius: 9 };
+  const label = { gap: 15, className: "label" };
   return (
-    <svg className="tall" viewBox="0 0 342 746" role="img" aria-label={DESCRIPTION}>
+    <svg className="tall" viewBox="0 0 342 876" role="img" aria-label={DESCRIPTION}>
       <Flows
         id="head-tall"
+        size={13}
         paths={[
-          "M171 28 V62",
-          "M110 106 C40 135 60 190 146 200",
-          "M232 106 C302 135 282 190 196 200",
-          "M171 220 V266",
-          "M171 298 V344",
-          "M171 376 V420",
-          "M110 464 C40 493 60 548 152 558",
-          "M232 464 C302 493 282 548 190 558",
-          "M171 578 V626",
-          "M171 670 V716",
+          "M171 45 V76",
+          "M110 124 V196 Q110 206 120 206 H137",
+          "M232 124 V196 Q232 206 222 206 H205",
+          "M171 224 V284",
+          "M171 328 V398",
+          "M171 442 V512",
+          "M110 560 V632 Q110 642 120 642 H151",
+          "M232 560 V632 Q232 642 222 642 H191",
+          "M171 662 V726",
+          "M171 770 V830",
         ]}
       />
 
-      <Text x={171} y={14} lines={["User query"]} className="step" />
-      <Part x={86} y={64} w={170} h={42} lines={["Document Retriever"]} />
-      <Text x={118} y={155} lines={["Semantic", "search"]} className="tag" />
-      <Text x={224} y={155} lines={["Lexical", "search"]} className="tag" />
-      <Text x={171} y={204} lines={["RRF"]} className="step" />
-      <Text x={183} y={243} lines={["Top k docs"]} className="tag" anchor="start" />
-      <Text x={171} y={282} lines={["Rerank"]} className="step" />
-      <Text x={183} y={321} lines={["Relative thresholding"]} className="tag" anchor="start" />
-      <Text x={171} y={360} lines={["Selected m docs"]} className="step" />
-      <Part x={86} y={422} w={170} h={42} lines={["Chunk Retriever"]} />
-      <Text x={122} y={510} lines={["Chunk", "similarity", "score"]} className="tag" />
-      <Text x={224} y={510} lines={["Document", "score"]} className="tag" />
-      <Text x={171} y={562} lines={["×"]} className="times" />
-      <Text x={183} y={602} lines={["Select top n chunks"]} className="tag" anchor="start" />
-      <Part x={106} y={628} w={130} h={42} lines={["Generator"]} />
-      <Text x={171} y={732} lines={["Answer"]} className="step" />
+      <Box x={106} y={1} w={130} h={44} lines={["User query"]} {...box} />
+      <Box x={86} y={76} w={170} h={48} lines={["Document Retriever"]} shaded {...box} />
+      <ellipse className="shape" cx={171} cy={206} rx={34} ry={18} />
+      <Text x={171} y={206} lines={["RRF"]} gap={17} className="name" />
+      <Box x={106} y={284} w={130} h={44} lines={["Rerank"]} {...box} />
+      <Box x={96} y={398} w={150} h={44} lines={["Selected m docs"]} {...box} />
+      <Box x={86} y={512} w={170} h={48} lines={["Chunk Retriever"]} shaded {...box} />
+      <Multiply cx={171} cy={642} r={20} />
+      <Box x={106} y={726} w={130} h={44} lines={["Generator"]} shaded {...box} />
+      <Box x={106} y={830} w={130} h={44} lines={["Answer"]} {...box} />
+
+      <Text x={110} y={146} lines={["Semantic search"]} {...label} />
+      <Text x={232} y={146} lines={["lexical search"]} {...label} />
+      <Text x={171} y={176} lines={["Top k docs"]} {...label} />
+      <Text x={171} y={363} lines={["relative thresholding"]} {...label} />
+      <Text x={110} y={596} lines={["Chunk similarity", "score"]} {...label} />
+      <Text x={232} y={596} lines={["document score"]} {...label} />
+      <Text x={171} y={694} lines={["select top n chunks"]} {...label} />
     </svg>
   );
 }

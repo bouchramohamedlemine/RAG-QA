@@ -8,33 +8,6 @@ const THRESHOLD_FORMULA = `<math display="block"><mi>d</mi><mo>.</mo><mtext>rera
 
 const CHUNK_FORMULA = `<math display="block"><mtext>chunk_score</mtext><mo>=</mo><msub><mtext>rerank_score</mtext><mi>d</mi></msub><mo>×</mo><mtext>sim</mtext><mo stretchy="false">(</mo><mi>c</mi><mo>,</mo><mi>q</mi><mo stretchy="false">)</mo></math>`;
 
-const IMPROVEMENTS = [
-  {
-    title: "Automated document ingestion",
-    text: "Add a robust ingestion pipeline (e.g. arXiv API) so the corpus keeps growing, while preserving metadata such as authorship, publication date and venue.",
-  },
-  {
-    title: "Cache and monitor results",
-    text: "Cache intermediate retrieval results (document rankings, reranker outputs, selected chunks) to reduce latency and cost. Track retrieval hit rates, reranker confidence distributions and answer quality over time.",
-  },
-  {
-    title: "Query understanding and rewriting layer",
-    text: "Raw user queries should not go directly to the retriever. A query processing layer would rewrite them into retrieval-optimized queries.",
-  },
-  {
-    title: "Learned retriever for domain adaptation",
-    text: "Retrieval quality could be further improved by training or fine-tuning a domain-specific retriever.",
-  },
-  {
-    title: "Systematic evaluation of answer quality",
-    text: "Evaluate generated answers against reference answers using token-level F1 for partial correctness and Exact Match (EM) for strict accuracy. This gives a clearer signal of factual correctness and coverage, especially for technical questions.",
-  },
-  {
-    title: "Memory of previous questions",
-    text: "Store previous questions and answers, using short-term session memory or long-term persistent memory, so the agent can handle follow-ups.",
-  },
-];
-
 function Formula({ math, children }: { math: string; children?: ReactNode }) {
   return (
     <figure className="formula">
@@ -115,21 +88,9 @@ export default function About({ onStart }: { onStart: () => void }) {
 
           <Stage number={4} title="Answer Generation">
             <p>The top 10 chunks are passed as context to the language model (gpt-4o-mini), which is good at explaining concepts, comparing methods and providing evidence. It is instructed to name the paper behind each finding.</p>
-            <p>If a question cannot be answered from the documents, we rely on the parametric knowledge of the model.</p>
+            <p>If a question cannot be answered from the documents, the model says so instead of using its own knowledge.</p>
           </Stage>
         </ol>
-      </section>
-
-      <section className="story">
-        <h2>Improvements</h2>
-        <div className="next">
-          {IMPROVEMENTS.map((item) => (
-            <div key={item.title}>
-              <h3>{item.title}</h3>
-              <p>{item.text}</p>
-            </div>
-          ))}
-        </div>
       </section>
 
       <div className="go">
