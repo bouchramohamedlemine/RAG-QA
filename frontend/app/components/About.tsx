@@ -59,7 +59,7 @@ export default function About({ onStart }: { onStart: () => void }) {
           </Stage>
 
           <Stage number={2} title="Query Rewriting">
-            <p>Raw user queries should not go directly to the retriever. GPT rewrites each query into a retrieval-optimized query, which is used for retrieval. The answer is still generated for the original question.</p>
+            <p>Raw user queries should not go directly to the retriever. GPT rewrites each query into a retrieval-optimized query, which is used for retrieval. The answer is still generated for the original question. Messages that are not about RAG are filtered out here, without searching the papers.</p>
           </Stage>
 
           <Stage number={3} title="Document Retrieval">
@@ -104,7 +104,12 @@ export default function About({ onStart }: { onStart: () => void }) {
       </div>
 
       <footer>
-        <span>Built by Bouchra Mohamed Lemine</span>
+        <span>
+          Built by Bouchra Mohamed Lemine ·{" "}
+          <a href="https://github.com/bouchramohamedlemine/RAG-QA" target="_blank" rel="noopener noreferrer">
+            Source code on GitHub
+          </a>
+        </span>
         <span>Thank you to arXiv for use of its open access interoperability.</span>
       </footer>
     </>

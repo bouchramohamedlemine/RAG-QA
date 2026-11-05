@@ -12,6 +12,8 @@ const GENERATOR = "Generator";
 
 const TOP_K = 10;
 
+const OFF_TOPIC_ANSWER = "I've only read research papers about RAG, so that's all I can talk about. Ask me anything about it!";
+
 /** doc_id e.g. "2005.11401v4" → https://arxiv.org/pdf/2005.11401 */
 function arxivPdfUrl(docId: string): string {
   const base = docId.replace(/v\d+$/i, "");
@@ -112,8 +114,12 @@ export default function ChatUI() {
     const fail = (error: string) => update({ status: undefined, error });
 
     try {
-      // Query rewriter → retrieval-optimized query (falls back to the raw query if it fails)
-      const rewriteRes = await invokeFunction<{ query: string }>(QUERY_REWRITER, { query });
+      // Query rewriter → off-topic check + retrieval-optimized query (falls back to the raw query if it fails)
+      const rewriteRes = await invokeFunction<{ on_topic: boolean; query: string }>(QUERY_REWRITER, { query });
+      if (rewriteRes.ok && rewriteRes.data.on_topic === false) {
+        update({ status: undefined, answer: OFF_TOPIC_ANSWER });
+        return;
+      }
       const searchQuery = (rewriteRes.ok && rewriteRes.data.query) || query;
 
       // 1️⃣ Document retriever → doc_ids + rerank scores
