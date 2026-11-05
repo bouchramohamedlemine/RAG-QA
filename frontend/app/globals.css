@@ -463,7 +463,7 @@ footer a:hover {
 .dock {
   position: sticky;
   bottom: 0;
-  padding: 24px 24px 18px;
+  padding: 24px 24px max(44px, env(safe-area-inset-bottom));
   background: linear-gradient(transparent, var(--paper) 22px);
 }
 .dock form {
