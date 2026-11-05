@@ -18,7 +18,7 @@ for line in (HERE.parent / ".env").read_text().splitlines():
 
 from Preprocessing.chunk_and_embed import Document_processing  # noqa: E402
 
-DOCS_DIR = HERE / "documents"  # the original papers, which are kept
+DOCS_DIR = HERE / "documents"  # optional folder for extra local papers
 DOWNLOADS = HERE / "downloads" / "pdf"  # each new paper is deleted once stored
 MANIFEST = HERE / "downloads" / "manifest.jsonl"
 FAILED = HERE / "downloads" / "failed_papers.jsonl"
@@ -97,7 +97,7 @@ def main(limit=None):
         manifest = [json.loads(line) for line in MANIFEST.open()]
         by_id = {paper["arxiv_id"]: paper for paper in manifest}
         papers = []
-        for path in sorted(DOCS_DIR.glob("*.pdf")):  # the original papers, using arXiv's metadata if listed
+        for path in sorted(DOCS_DIR.glob("*.pdf")):  # any local papers, using arXiv's metadata if listed
             if path.stem not in done:
                 known = by_id.get(path.stem.split("v")[0], {})
                 papers.append({"path": path, "title": known.get("title"), "abstract": known.get("abstract")})
