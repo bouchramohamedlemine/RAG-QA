@@ -105,9 +105,13 @@ export default function About({ onStart }: { onStart: () => void }) {
 
       <footer>
         <span>
-          Built by Bouchra Mohamed Lemine ·{" "}
+          Built by{" "}
+          <a href="https://bouchra.tech" target="_blank" rel="noopener noreferrer">
+            Bouchra Mohamed Lemine
+          </a>{" "}
+          ·{" "}
           <a href="https://github.com/bouchramohamedlemine/RAG-QA" target="_blank" rel="noopener noreferrer">
-            Source code on GitHub
+            Source code
           </a>
         </span>
         <span>Thank you to arXiv for use of its open access interoperability.</span>
