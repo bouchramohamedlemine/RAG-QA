@@ -13,7 +13,7 @@ The goal is to make it easy for engineers and scientists to find quick, literatu
 
 We use a two-stage hierarchical retrieval with document gating.
 
-![RAG Architecture](RAG.png)
+<img src="RAG.png" alt="RAG Architecture" width="640">
 
 
 The front-end calls four Supabase Edge Functions in order: `Query_rewriter`, `Document_retriever`, `Chunk_retriever` and `Generator`.
