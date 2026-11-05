@@ -58,7 +58,11 @@ export default function About({ onStart }: { onStart: () => void }) {
             </ul>
           </Stage>
 
-          <Stage number={2} title="Document Retrieval">
+          <Stage number={2} title="Query Rewriting">
+            <p>Raw user queries should not go directly to the retriever. GPT rewrites each query into a retrieval-optimized query, which is used for retrieval. The answer is still generated for the original question.</p>
+          </Stage>
+
+          <Stage number={3} title="Document Retrieval">
             <p>This is the most important stage: mistakes here can lead to selecting irrelevant chunks later.</p>
             <h4>Hybrid retrieval</h4>
             <p>I use hybrid retrieval (semantic + keyword search). Keyword matching captures domain terms, and semantic search handles synonyms and paraphrases.</p>
@@ -78,7 +82,7 @@ export default function About({ onStart }: { onStart: () => void }) {
             <p>The goal is to return as many papers as actually contain the answer (e.g. 10, 2 or 0). In practice, queries with low reranker scores are filtered by the minimum score, but the threshold filters less when the top score is close to 1.0.</p>
           </Stage>
 
-          <Stage number={3} title="Chunk Retrieval">
+          <Stage number={4} title="Chunk Retrieval">
             <p>The selected documents and their rerank scores are passed from the previous stage. Each chunk is scored as:</p>
             <Formula math={CHUNK_FORMULA}>
               d is the parent document, c is the chunk, and sim(c, q) is the chunk–query semantic similarity.
@@ -86,7 +90,7 @@ export default function About({ onStart }: { onStart: () => void }) {
             <p>Chunk relevance is modulated by document relevance. The top 10 chunks are selected for answer generation.</p>
           </Stage>
 
-          <Stage number={4} title="Answer Generation">
+          <Stage number={5} title="Answer Generation">
             <p>The top 10 chunks are passed as context to the language model (gpt-4o-mini), which is good at explaining concepts, comparing methods and providing evidence. It is instructed to name the paper behind each finding.</p>
             <p>If a question cannot be answered from the documents, the model says so instead of using its own knowledge.</p>
           </Stage>

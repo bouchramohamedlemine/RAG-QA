@@ -5,6 +5,7 @@ import ReactMarkdown from "react-markdown";
 import About from "./About";
 import { RobotOnBox, SmallRobot } from "./Robot";
 
+const QUERY_REWRITER = "Query_rewriter";
 const DOCUMENT_RETRIEVER = "Document_retriever";
 const CHUNK_RETRIEVER = "Chunk_retriever";
 const GENERATOR = "Generator";
@@ -104,15 +105,20 @@ export default function ChatUI() {
   async function ask(query: string) {
     if (loading) return;
     setLoading(true);
-    setTurns((prev) => [...prev, { query, status: "Retrieving documents…" }]);
+    setTurns((prev) => [...prev, { query, status: "Rewriting the query…" }]);
 
     const update = (patch: Partial<Turn>) =>
       setTurns((prev) => prev.map((turn, i) => (i === prev.length - 1 ? { ...turn, ...patch } : turn)));
     const fail = (error: string) => update({ status: undefined, error });
 
     try {
+      // Query rewriter → retrieval-optimized query (falls back to the raw query if it fails)
+      const rewriteRes = await invokeFunction<{ query: string }>(QUERY_REWRITER, { query });
+      const searchQuery = (rewriteRes.ok && rewriteRes.data.query) || query;
+
       // 1️⃣ Document retriever → doc_ids + rerank scores
-      const docRes = await invokeFunction<DocWithScore[]>(DOCUMENT_RETRIEVER, { query });
+      update({ status: "Retrieving documents…" });
+      const docRes = await invokeFunction<DocWithScore[]>(DOCUMENT_RETRIEVER, { query: searchQuery });
       if (!docRes.ok) return fail(docRes.error);
 
       const docs = docRes.data ?? [];
@@ -128,7 +134,7 @@ export default function ChatUI() {
       // 2️⃣ Chunk retriever → context (chunks)
       const chunkRes = await invokeFunction<{ context: ContextChunk[]; query: string }>(CHUNK_RETRIEVER, {
         docs: docsForChunkRetriever,
-        query,
+        query: searchQuery,
         top_k: TOP_K,
       });
       if (!chunkRes.ok) return fail(chunkRes.error);
@@ -182,14 +188,11 @@ export default function ChatUI() {
 
   return (
     <div className="chat">
-      <header className="bar">
-        <button type="button" className="mark" onClick={startOver}>
-          RAG Q&amp;A
-        </button>
-        <button type="button" className="quiet" onClick={startOver}>
-          New question
-        </button>
-      </header>
+      <button type="button" className="home" aria-label="Back to home" title="Back to home" onClick={startOver} disabled={loading}>
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M15 9H3M8 4 3 9l5 5" />
+        </svg>
+      </button>
 
       <div className="thread" aria-live="polite">
         {turns.map((turn, i) => (
@@ -218,7 +221,6 @@ export default function ChatUI() {
                       <a href={arxivPdfUrl(paper.id)} target="_blank" rel="noopener noreferrer">
                         {paper.title}
                       </a>
-                      <small>arXiv {paper.id}</small>
                     </li>
                   ))}
                 </ul>

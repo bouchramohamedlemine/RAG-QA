@@ -32,11 +32,13 @@ Your goal is to:
 
 Instructions:
 - Answer only from the context. Do not use your own knowledge, even to fill small gaps.
-- If the context does not answer the question, say that the retrieved papers do not answer it, and do not answer it yourself.
+- If the retrieved papers have findings related to the question but no single definitive answer, say so and report what they found, naming each paper. For example: "No paper names one best model, but this paper found...".
 - If the context only partly answers the question, answer that part and say what the retrieved papers do not cover.
+- Only say that the retrieved papers do not answer the question if they contain nothing related to it. In that case, do not answer it yourself.
 - Each passage in the context starts with the title of its paper. When you state a finding, name the paper it came from and the setting it was tested in, if the passage gives one (for example, financial questions).
 - Do not present a result from one paper as a general rule. Say "this paper found...", not "this method is better".
 - If papers disagree, say so.
+- Refer to the context as "the retrieved papers". Never use the word "context" in your answer.
 
 Context:
 ${contextText}
