@@ -177,7 +177,7 @@ export default function ChatUI() {
     return (
       <>
         <main className="hero">
-          <h1 className="rise d1">Ask any question about RAG</h1>
+          <h1 className="rise d1">Ask a research question about RAG</h1>
           <div className="seat rise d2">
             <RobotOnBox />
             <AskBox id="first-question" placeholder="Ask a question..." loading={loading} onAsk={ask} />
