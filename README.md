@@ -13,37 +13,12 @@ The goal is to make it easy for engineers and scientists to find quick, literatu
 
 We use a two-stage hierarchical retrieval with document gating.
 
-```mermaid
-flowchart TB
-    subgraph S1[" "]
-        direction LR
-        Q[User query] --> QR[Query Rewriter]
-        QR --> DR[Document Retriever]
-        DR -->|"Semantic search<br/>top k docs"| RRF([RRF])
-        DR -->|"Lexical search<br/>top k docs"| RRF
-        RRF --> RR[Rerank]
-        RR -->|Relative thresholding| SEL[Selected m docs]
-    end
-    subgraph S2[" "]
-        direction LR
-        CR[Chunk Retriever] -->|Chunk similarity score| X((×))
-        CR -->|Document score| X
-        X -->|Select top n chunks| G[Generator]
-        G --> A[Answer]
-    end
-    S1 --> S2
-    style S1 fill:transparent,stroke:transparent
-    style S2 fill:transparent,stroke:transparent
-    classDef part fill:#dbe4ea,stroke:#1f2a37,color:#1f2a37,stroke-width:2px
-    classDef plain fill:#ffffff,stroke:#1f2a37,color:#1f2a37,stroke-width:2px
-    class QR,DR,CR,G part
-    class Q,RRF,RR,SEL,X,A plain
-```
+![RAG Architecture](RAG.png)
 
 
 The front-end calls four Supabase Edge Functions in order: `Query_rewriter`, `Document_retriever`, `Chunk_retriever` and `Generator`.
 
-#### For the front-end we use **Next.js** (Typescript, React & Tailwind)
+For the front-end we use Next.js (Typescript, React & Tailwind).
 
 
 
@@ -69,7 +44,7 @@ I iterated on this stage so documents are processed and stored for effective dow
 
 ### Query Rewriting
 
-Raw user queries should not go directly to the retriever. **GPT** rewrites each query into a retrieval-optimized query, which is used for retrieval. The answer is still generated for the original question.
+Raw user queries should not go directly to the retriever. **GPT** rewrites each query into a retrieval-optimized query, which is used for retrieval. The answer is still generated for the original question. Messages that are not about RAG, such as greetings, are filtered out at this stage, without searching the papers.
 
 
 ### Document Retrieval
