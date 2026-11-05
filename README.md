@@ -1,8 +1,8 @@
-# PaperQA
+# RAG Q&A
 
 An AI agent that answers questions about research papers from arXiv on a specific research topic.
 
-**NB:** So far it has 25 research papers on RAG.
+**NB:** So far it has 3,083 research papers on RAG (105,276 chunks).
 
 The goal is to make it easy for engineers and scientists to find quick, literature-backed answers to specific design choices.
 
@@ -40,11 +40,11 @@ I iterated on this stage so documents are processed and stored for effective dow
 ##### 1. Data modeling & section processing
 - **Pydantic** data structures for documents and chunks, with rich metadata per chunk for retrieval  
 - Extracted sections and used **GPT** for section-level summaries (key concepts + domain terms)  
-- **GPT** document-level summary from section summaries, used for document-level filtering before chunk retrieval  
+- **GPT** document-level summary from section summaries, with the title and abstract added, used for document-level filtering before chunk retrieval  
 
 ##### 2. Chunking & embedding
 - Sentence-level chunking per section (papers already structure ideas by section)  
-- Embedded chunks and document summaries with **OpenAI’s small embedding model (1536 dimensions)** 
+- Embedded chunks (512 dimensions, stored at half precision so they fit on the free Supabase plan) and document summaries (1536 dimensions) with **OpenAI’s small embedding model**
 
 
 
@@ -54,20 +54,20 @@ I iterated on this stage so documents are processed and stored for effective dow
 This is the most important stage, mistakes here can lead to selecting irrelevant chunks later. I use hybrid retrieval (semantic + keyword search), keyword matching captures domain terms, semantic search handles synonyms and paraphrases. Because BM25 was difficult to integrate on Supabase, Lexical retrieval is implemented using PostgreSQL full-text search with a GIN index over a tsvector representation, which provides token-based matching over document summaries.
 
 
-To make semantic search fast, I use an IVFFLAT ANN index with 5 inverted lists. The number of lists was chosen based on the current corpus size. This only performs distance computations with the most relevant clusters at query time
+To make semantic search fast, I use an IVFFLAT ANN index with 5 inverted lists. This only performs distance computations with the most relevant cluster at query time. At 3,083 papers, it still returns 95% of the same top 25 documents as exact search (measured using the stored summaries as queries).
 
 
 The semantic and a lexical scores are computed per document, then fused with Reciprocal Rank Fusion (RRF). For each document $d$:
 
 $$\text{RRF}(d) = \sum_{r \in \{\text{semantic}, \text{lexical}\}} \frac{1}{k + \text{rank}_{r}(d)}$$
 
-where $k$ is a constant (e.g. 60) and $\text{rank}_{r}(d)$ is $d$'s 1-based rank in ranking $r$. Documents ranking well in both lists get a higher score. The reason for using fused score is to make this scalable with a larger corpus where we want to filter out docs with low RRF; at ~25 docs I still pass all of them to the next stage, and RRF just helps with reordering.
+where $k$ is a constant (60) and $\text{rank}_{r}(d)$ is $d$'s 1-based rank in ranking $r$. Documents ranking well in both lists get a higher score. The reason for using fused score is to make this scalable with a larger corpus where we want to filter out docs with low RRF; for now I still pass the top 25 from each search to the next stage, so RRF only merges the two lists.
 
 After RRF, the documents are reranked with Cohere's rerank-english-v3.0, then selected using a relative threshold so the number of documents returned adapts to the query. A document $d$ is kept if:
 
 $$d.\text{rerank\\_score} \geq \max_{\text{docs}} \text{rerank\\_score} - \Delta \quad \text{and} \quad d.\text{rerank\\_score} \geq \text{MIN\\_SCORE}$$
 
-We apply a relative threshold with a minimum score to adapt document selection to each query and filter low-quality matches. The goal is to return as many papers as actually contain the answer (e.g., 10, 2, or 0). In practice, this approach works well when reranker confidence is high; queries with low reranker scores are filtered by the absolute minimum score.
+We apply a relative threshold ($\Delta = 0.3$) with a minimum score (0.01) to adapt document selection to each query and filter low-quality matches. The goal is to return as many papers as actually contain the answer (e.g., 10, 2, or 0). In practice, queries with low reranker scores are filtered by the absolute minimum score, but the threshold filters less when the top score is close to 1.0.
 
 
 ### Chunk Retrieval
@@ -82,7 +82,7 @@ where $d$ is the parent document, $c$ is the chunk, and $\text{sim}(c,q)$ is the
 
 ### Answer Generation
 
-The top 10 chunks' content is passed as context to the language model. If a question cannot be answered from the docuemnts, we rely on the parametric knowledge of the model to generate the answer. The model is good at concept explaination, comparison between methods, and also evidence providing.
+The top 10 chunks' content is passed as context to the language model (gpt-4o-mini). If a question cannot be answered from the documents, we rely on the parametric knowledge of the model to generate the answer. The model is good at concept explanation, comparison between methods, and also evidence providing. It is instructed to name the paper behind each finding, not to present one paper's result as a general rule, and to say when papers disagree or when it uses its own knowledge.
 
 
 

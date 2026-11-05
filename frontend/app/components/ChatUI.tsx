@@ -1,6 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import About from "./About";
+import { PatchOnBox, SmallPatch } from "./Patch";
 
 const DOCUMENT_RETRIEVER = "Document_retriever";
 const CHUNK_RETRIEVER = "Chunk_retriever";
@@ -15,11 +18,14 @@ function arxivPdfUrl(docId: string): string {
 }
 
 type DocWithScore = { doc_id: string; rerank_score: number };
-type Message = {
-  role: "user" | "assistant";
-  content: string;
+type ContextChunk = { content: string; doc_id: string; title?: string };
+type Paper = { id: string; title: string };
+type Turn = {
+  query: string;
+  status?: string;
   answer?: string;
-  documentIds?: string[];
+  papers?: Paper[];
+  error?: string;
 };
 
 /** Call Supabase Edge Function via Next.js API proxy (avoids CORS / "Failed to fetch"). */
@@ -43,201 +49,188 @@ async function invokeFunction<T>(
   return { ok: true, data: data as T };
 }
 
-export default function ChatUI() {
-  const [messages, setMessages] = useState<Message[]>([]);
+function AskBox({
+  id,
+  placeholder,
+  loading,
+  onAsk,
+}: {
+  id: string;
+  placeholder: string;
+  loading: boolean;
+  onAsk: (query: string) => void;
+}) {
   const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  async function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const query = input.trim();
     if (!query || loading) return;
-
     setInput("");
-    setMessages((prev) => [...prev, { role: "user", content: query }]);
+    onAsk(query);
+  }
+
+  return (
+    <form className="box" onSubmit={handleSubmit}>
+      <label htmlFor={id} className="sr-only">
+        Your question about RAG
+      </label>
+      <input
+        id={id}
+        autoComplete="off"
+        value={input}
+        placeholder={placeholder}
+        onChange={(e) => setInput(e.target.value)}
+      />
+      <button type="submit" aria-label="Ask" disabled={loading || !input.trim()}>
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M9 15V3M4 8l5-5 5 5" />
+        </svg>
+      </button>
+    </form>
+  );
+}
+
+export default function ChatUI() {
+  const [turns, setTurns] = useState<Turn[]>([]);
+  const [loading, setLoading] = useState(false);
+  const lastTurnRef = useRef<HTMLElement>(null);
+  const turnCount = turns.length;
+
+  useEffect(() => {
+    if (turnCount > 0) lastTurnRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [turnCount]);
+
+  async function ask(query: string) {
+    if (loading) return;
     setLoading(true);
-    setError(null);
+    setTurns((prev) => [...prev, { query, status: "Retrieving documents…" }]);
+
+    const update = (patch: Partial<Turn>) =>
+      setTurns((prev) => prev.map((turn, i) => (i === prev.length - 1 ? { ...turn, ...patch } : turn)));
+    const fail = (error: string) => update({ status: undefined, error });
 
     try {
       // 1️⃣ Document retriever → doc_ids + rerank scores
-      const docRes = await invokeFunction<DocWithScore[]>(DOCUMENT_RETRIEVER, {
-        query,
-      });
-      if (!docRes.ok) {
-        setError(docRes.error);
-        setMessages((prev) => [
-          ...prev,
-          { role: "assistant", content: `Error: ${docRes.error}` },
-        ]);
-        return;
-      }
+      const docRes = await invokeFunction<DocWithScore[]>(DOCUMENT_RETRIEVER, { query });
+      if (!docRes.ok) return fail(docRes.error);
 
       const docs = docRes.data ?? [];
-      const docIds = docs.map((d) => d.doc_id).filter(Boolean);
-
-      if (docIds.length === 0) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: "assistant",
-            content: "No relevant documents found.",
-            answer: "No relevant documents were retrieved for your query.",
-            documentIds: [],
-          },
-        ]);
+      if (docs.length === 0) {
+        update({ status: undefined, answer: "No relevant documents were retrieved for your query." });
         return;
       }
 
       // Transform document retriever output → chunk retriever input: { doc_id, rerank_score } → { doc_id, document_score }
-      const docsForChunkRetriever = docs.map((d) => ({
-        doc_id: d.doc_id,
-        document_score: d.rerank_score,
-      }));
+      update({ status: `Retrieving chunks from ${docs.length} ${docs.length === 1 ? "document" : "documents"}…` });
+      const docsForChunkRetriever = docs.map((d) => ({ doc_id: d.doc_id, document_score: d.rerank_score }));
 
       // 2️⃣ Chunk retriever → context (chunks)
-      const chunkRes = await invokeFunction<{ context: { content: string }[]; query: string }>(
-        CHUNK_RETRIEVER,
-        { docs: docsForChunkRetriever, query, top_k: TOP_K }
-      );
-      console.log("2. Chunk retriever raw response:", chunkRes);
+      const chunkRes = await invokeFunction<{ context: ContextChunk[]; query: string }>(CHUNK_RETRIEVER, {
+        docs: docsForChunkRetriever,
+        query,
+        top_k: TOP_K,
+      });
+      if (!chunkRes.ok) return fail(chunkRes.error);
 
-      if (!chunkRes.ok) {
-        setError(chunkRes.error);
-        setMessages((prev) => [
-          ...prev,
-          { role: "assistant", content: `Error: ${chunkRes.error}`, documentIds: docIds },
-        ]);
-        return;
-      }
-
-      const rawData = chunkRes.data as unknown;
-      const context = Array.isArray((rawData as { context?: unknown }).context)
-        ? (rawData as { context: { content: string }[] }).context
-        : (rawData as { context?: { content: string }[] }).context ?? [];
-      const generatorPayload = { context, query };
-      console.log("Exact payload passed to generator:", JSON.stringify(generatorPayload, null, 2));
+      const context = chunkRes.data.context ?? [];
+      const titles = new Map(context.map((c) => [c.doc_id, c.title ?? ""]));
+      const papers = [...titles].map(([id, title]) => ({ id, title: title || id }));
 
       // 3️⃣ Generator → answer
-      const genRes = await invokeFunction<{ answer: string }>(GENERATOR, generatorPayload);
-      if (!genRes.ok) {
-        setError(genRes.error);
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: "assistant",
-            content: `Error: ${genRes.error}`,
-            documentIds: docIds,
-          },
-        ]);
-        return;
-      }
+      update({ status: "Generating the answer…" });
+      const genRes = await invokeFunction<{ answer: string }>(GENERATOR, { context, query });
+      if (!genRes.ok) return fail(genRes.error);
 
-      const answer = genRes.data?.answer ?? "No answer generated.";
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: answer,
-          answer,
-          documentIds: docIds,
-        },
-      ]);
+      update({ status: undefined, answer: genRes.data?.answer ?? "No answer generated.", papers });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setError(msg);
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: `Error: ${msg}` },
-      ]);
+      fail(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }
   }
 
-  return (
-    <div className="flex h-[calc(100vh-8rem)] flex-col rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.length === 0 && (
-          <p className="text-center text-zinc-500 dark:text-zinc-400 text-sm">
-            Ask a question about your documents.
+  function startOver() {
+    if (loading) return;
+    setTurns([]);
+    window.scrollTo(0, 0);
+  }
+
+  function focusQuestionBox() {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    document.getElementById("first-question")?.focus({ preventScroll: true });
+  }
+
+  if (turns.length === 0) {
+    return (
+      <>
+        <main className="hero">
+          <h1 className="rise d1">An AI agent that answers questions about RAG.</h1>
+          <p className="lede rise d2">
+            So far it has 3,083 research papers from arXiv. The goal is to make it easy for engineers to find literature-backed answers to specific design choices.
           </p>
-        )}
-        {messages.map((m, i) => (
-          <div
-            key={i}
-            className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
-          >
-            <div
-              className={`max-w-[85%] rounded-2xl px-4 py-2.5 ${
-                m.role === "user"
-                  ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                  : "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"
-              }`}
-            >
-              <p className="whitespace-pre-wrap text-sm">{m.content}</p>
-              {m.role === "assistant" && m.documentIds && m.documentIds.length > 0 && (
-                <div className="mt-3 border-t border-zinc-200 dark:border-zinc-700 pt-3">
-                  <p className="text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1.5">
-                    Documents used:
-                  </p>
-                  <ul className="flex flex-wrap gap-1.5">
-                    {m.documentIds.map((id, j) => (
-                      <li key={j}>
-                        <a
-                          href={arxivPdfUrl(id)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="rounded bg-white/80 px-2 py-0.5 text-xs font-mono text-zinc-700 underline hover:text-zinc-900 dark:bg-zinc-900/80 dark:text-zinc-300 dark:hover:text-zinc-100"
-                        >
-                          {id}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
+          <div className="seat rise d3">
+            <PatchOnBox />
+            <AskBox id="first-question" placeholder="Ask a question..." loading={loading} onAsk={ask} />
           </div>
+        </main>
+
+        <About onStart={focusQuestionBox} />
+      </>
+    );
+  }
+
+  return (
+    <div className="chat">
+      <header className="bar">
+        <button type="button" className="mark" onClick={startOver}>
+          RAG Q&amp;A
+        </button>
+        <button type="button" className="quiet" onClick={startOver}>
+          New question
+        </button>
+      </header>
+
+      <div className="thread" aria-live="polite">
+        {turns.map((turn, i) => (
+          <article className="turn" key={i} ref={i === turns.length - 1 ? lastTurnRef : undefined}>
+            <h2 className="q">{turn.query}</h2>
+            {turn.status && (
+              <div className="who working">
+                <SmallPatch />
+                <span>{turn.status}</span>
+              </div>
+            )}
+            {turn.error && <p className="err">Something went wrong: {turn.error}</p>}
+            {turn.answer && (
+              <div className="answer">
+                <ReactMarkdown>{turn.answer}</ReactMarkdown>
+              </div>
+            )}
+            {turn.papers && turn.papers.length > 0 && (
+              <div className="srcs">
+                <h3>
+                  Retrieved from {turn.papers.length} {turn.papers.length === 1 ? "paper" : "papers"}
+                </h3>
+                <ul>
+                  {turn.papers.map((paper) => (
+                    <li key={paper.id}>
+                      <a href={arxivPdfUrl(paper.id)} target="_blank" rel="noopener noreferrer">
+                        {paper.title}
+                      </a>
+                      <small>arXiv {paper.id}</small>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </article>
         ))}
-        {loading && (
-          <div className="flex justify-start">
-            <div className="rounded-2xl bg-zinc-100 px-4 py-2.5 dark:bg-zinc-800">
-              <span className="text-sm text-zinc-500">Searching and generating…</span>
-            </div>
-          </div>
-        )}
-        {error && (
-          <p className="text-center text-sm text-red-600 dark:text-red-400">{error}</p>
-        )}
-        <div ref={bottomRef} />
       </div>
 
-      <form onSubmit={handleSubmit} className="border-t border-zinc-200 p-4 dark:border-zinc-800">
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask a question..."
-            className="flex-1 rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:focus:border-zinc-500"
-            disabled={loading}
-          />
-          <button
-            type="submit"
-            disabled={loading || !input.trim()}
-            className="rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
-          >
-            Send
-          </button>
-        </div>
-      </form>
+      <div className="dock">
+        <AskBox id="next-question" placeholder="Ask a question..." loading={loading} onAsk={ask} />
+      </div>
     </div>
   );
 }

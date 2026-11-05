@@ -1,0 +1,30 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Next.js
+node_modules/
+.next/
+next-env.d.ts
+*.tsbuildinfo
+
+# Vercel and Supabase CLI state
+.vercel/
+supabase/.temp/
+
+# Papers: arXiv's terms restrict redistributing them, so they stay out of git
+Upload_papers/downloads/
+Upload_papers/documents/
+*.pdf
+
+# Large demo video (the README links to its hosted copy)
+Video.MOV
+
+# macOS
+.DS_Store

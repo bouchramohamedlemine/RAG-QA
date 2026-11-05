@@ -34,6 +34,7 @@ export async function POST(req: NextRequest) {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${supabaseAnonKey}`,
+        "x-edge-secret": process.env.EDGE_FUNCTION_SECRET ?? "",
       },
       body: JSON.stringify(body),
     });

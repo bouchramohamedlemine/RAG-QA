@@ -2,6 +2,7 @@
 import json
 import os
 import re
+import time
 from typing import List, Optional, Tuple
 
 from llama_index.core import Document as LlamaIxDocument
@@ -14,6 +15,7 @@ from Preprocessing.ChunkData import Document, RAGChunk
 
 CHUNK_SIZE = 500
 CHUNK_OVERLAP = 100
+CHUNK_EMBEDDING_DIMENSIONS = 512  # document summaries keep the full 1536
 
 
 class Document_processing:
@@ -172,7 +174,7 @@ class Document_processing:
 
 
 
-    def process_document(self, doc_path: str) -> Tuple[Document, List[RAGChunk]]:
+    def process_document(self, doc_path: str, known_title: Optional[str] = None, known_abstract: Optional[str] = None) -> Tuple[Document, List[RAGChunk]]:
         """
         Extract title from PDF. Collect text per section (and per subsection when present).
         Chunk each section/subsection with SentenceSplitter (size=100, overlap=20).
@@ -181,6 +183,8 @@ class Document_processing:
         arxiv_id = self._arxiv_id_from_path(doc_path)
         doc_id = arxiv_id
         title, abstract = self._extract_title_and_abstract_from_pdf(doc_path)
+        title = known_title or title
+        abstract = known_abstract or abstract
         # keywords = self._generate_keywords_with_gpt(abstract) if abstract else []
 
 
@@ -189,7 +193,8 @@ class Document_processing:
         current_section: Optional[str] = "Abstract"
         current_subsection: Optional[str] = None
         section_content: List[str] = []
-        section_header = re.compile(r"^\s*(\d+(?:\.\d+)*)\s+(.+?)\s*$")
+        # The title must contain a word, so number-only lines like "5 6 7 8 9" aren't headings
+        section_header = re.compile(r"^\s*(\d+(?:\.\d+)*)\s+(.*[A-Za-z]{3}.*?)\s*$")
 
         section_sentences: List[str] = []
 
@@ -327,7 +332,9 @@ class Document_processing:
             flush()
 
         # Condense per-section sentences into one short paragraph (no repetition, consistent)
-        document_summary = self._condense_sentences_to_summary(section_sentences)
+        summary = self._condense_sentences_to_summary(section_sentences)
+        # What document retrieval searches: the paper's own terms plus what each section did
+        document_summary = "\n\n".join(part for part in (title, abstract, summary) if part)
         document_summary_embedding = self._embed_text(document_summary)
         document = Document(
             doc_id=doc_id,
@@ -368,6 +375,7 @@ class Document_processing:
         resp = client.embeddings.create(
             model="text-embedding-3-small",
             input=texts,
+            dimensions=CHUNK_EMBEDDING_DIMENSIONS,
         )
         embeddings = [e.embedding for e in resp.data]
         for chunk, emb in zip(chunks, embeddings):
@@ -422,14 +430,21 @@ class Document_processing:
 
 
 
-    def process_and_store_docs(self):
-        for doc_path in self.documents:
-            print(f"Processing {doc_path}")
-            document, chunks = self.process_document(doc_path)
-            chunks = self.embed_chunks(document, chunks)
-            
-            self.store_document(document)
-            self.store_chunks(chunks)
+    def process_and_store_doc(self, doc_path: str, known_title: Optional[str] = None, known_abstract: Optional[str] = None) -> None:
+        print(f"Processing {doc_path}", flush=True)
+        document, chunks = self.process_document(doc_path, known_title, known_abstract)
+        chunks = self.embed_chunks(document, chunks)
+
+        # Saving can hit a dropped connection; retry rather than repay OpenAI on a later run
+        for attempt in range(4):
+            try:
+                self.store_document(document)
+                self.store_chunks(chunks)
+                return
+            except Exception:
+                if attempt == 3:
+                    raise
+                time.sleep(2 ** attempt)
 
 
 
