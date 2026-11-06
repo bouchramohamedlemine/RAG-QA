@@ -584,6 +584,8 @@ body:has(.feedback-dialog[open]:not(.closing)) > :not(.feedback-dialog) {
   font: 400 17px/1.4 var(--body);
   resize: vertical;
 }
+.feedback-panel textarea:focus,
+.feedback-panel input:focus,
 .feedback-panel textarea:focus-visible,
 .feedback-panel input:focus-visible {
   outline: none;
