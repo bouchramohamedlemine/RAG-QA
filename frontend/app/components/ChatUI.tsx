@@ -12,6 +12,8 @@ const GENERATOR = "Generator";
 
 const TOP_K = 10;
 
+const LIMIT_MESSAGE = "I've used up my research budget for now. Please try again later.";
+
 const OFF_TOPIC_ANSWER = "I've only read research papers about RAG, so that's all I can talk about. Ask me anything about it!";
 
 /** doc_id e.g. "2005.11401v4" → https://arxiv.org/pdf/2005.11401 */
@@ -42,6 +44,7 @@ async function invokeFunction<T>(
     body: JSON.stringify({ functionName: name, body }),
   });
   const data = await res.json().catch(() => null);
+  if (res.status === 503 && data?.code === "limit") return { ok: false, error: LIMIT_MESSAGE };
   if (!res.ok) {
     const errMsg =
       (data && typeof data === "object" && "error" in data ? (data as { error: string }).error : null) ??
@@ -81,6 +84,7 @@ function AskBox({
       <input
         id={id}
         autoComplete="off"
+        maxLength={500}
         value={input}
         placeholder={placeholder}
         onChange={(e) => setInput(e.target.value)}
@@ -111,11 +115,13 @@ export default function ChatUI() {
 
     const update = (patch: Partial<Turn>) =>
       setTurns((prev) => prev.map((turn, i) => (i === prev.length - 1 ? { ...turn, ...patch } : turn)));
-    const fail = (error: string) => update({ status: undefined, error });
+    const fail = (error: string) =>
+      update(error === LIMIT_MESSAGE ? { status: undefined, answer: LIMIT_MESSAGE } : { status: undefined, error });
 
     try {
       // Query rewriter → off-topic check + retrieval-optimized query (falls back to the raw query if it fails)
       const rewriteRes = await invokeFunction<{ on_topic: boolean; query: string }>(QUERY_REWRITER, { query });
+      if (!rewriteRes.ok && rewriteRes.error === LIMIT_MESSAGE) return fail(LIMIT_MESSAGE);
       if (rewriteRes.ok && rewriteRes.data.on_topic === false) {
         update({ status: undefined, answer: OFF_TOPIC_ANSWER });
         return;
