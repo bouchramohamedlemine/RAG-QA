@@ -6,7 +6,8 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 );
 
-const ALERT_TO = "bouchramohamedcheikh@gmail.com";
+const ALERT_FROM = "RAG Q&A alerts <forms@bouchra.tech>";
+const ALERT_TO = "contact@bouchra.tech";
 const KEEP_DAYS = 30;
 
 /** Emails her the first time a limit is hit each day, with what happened and who used it most. */
@@ -44,9 +45,9 @@ async function sendLimitAlert(detail: string) {
 
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
-    headers: { Authorization: `Bearer ${Deno.env.get("RESEND_API_KEY")}`, "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${Deno.env.get("RESEND_WORK_KEY")}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      from: "RAG Q&A <onboarding@resend.dev>",
+      from: ALERT_FROM,
       to: [ALERT_TO],
       subject: "RAG Q&A hit a limit",
       text,
