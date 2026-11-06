@@ -108,10 +108,6 @@ export default function About({ onStart }: { onStart: () => void }) {
           Built by{" "}
           <a href="https://bouchra.tech" target="_blank" rel="noopener noreferrer">
             Bouchra Mohamed Lemine
-          </a>{" "}
-          ·{" "}
-          <a href="https://github.com/bouchramohamedlemine/RAG-QA" target="_blank" rel="noopener noreferrer">
-            Source code
           </a>
         </span>
         <span>Questions and answers are saved for 30 days to improve this tool.</span>
