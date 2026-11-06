@@ -33,9 +33,9 @@ function isValidRequest(functionName: string, body: Record<string, unknown>): bo
 }
 
 /** Logging must never break the answer, so its failures are only printed. */
-async function logEvent(visitor: string, kind: string, detail?: string) {
+async function logEvent(event: { visitor: string; kind: string; conversation_id: string | null; question?: unknown; answer?: unknown; detail?: string }) {
   try {
-    const res = await callEdgeFunction("Log_event", { visitor, kind, detail });
+    const res = await callEdgeFunction("Log_event", event);
     if (!res.ok) console.error("[api/invoke] Log_event failed:", res.status);
   } catch (err) {
     console.error("[api/invoke] Log_event failed:", err);
@@ -52,9 +52,10 @@ function successKind(functionName: string, data: unknown): string | null {
 
 export async function POST(req: NextRequest) {
   try {
-    const { functionName, body } = (await req.json()) as {
+    const { functionName, body, conversationId } = (await req.json()) as {
       functionName?: string;
       body?: Record<string, unknown>;
+      conversationId?: unknown;
     };
 
     if (!functionName || !body) {
@@ -76,16 +77,17 @@ export async function POST(req: NextRequest) {
     }
 
     const visitor = visitorId(req);
+    const conversation_id = typeof conversationId === "string" && /^[\w-]{1,64}$/.test(conversationId) ? conversationId : null;
     const res = await callEdgeFunction(functionName, body);
     const data = await res.json().catch(() => null);
 
     if (!res.ok) {
       const detail = `${functionName}: ${String((data && typeof data === "object" && "error" in data ? (data as { error: unknown }).error : null) ?? res.statusText)}`;
       if (LIMIT_ERROR.test(detail)) {
-        await logEvent(visitor, "limit_hit", detail);
+        await logEvent({ visitor, kind: "limit_hit", conversation_id, question: body.query, detail });
         return NextResponse.json({ error: "A usage limit was reached", code: "limit" }, { status: 503 });
       }
-      await logEvent(visitor, "error", detail);
+      await logEvent({ visitor, kind: "error", conversation_id, question: body.query, detail });
       return NextResponse.json(
         { error: (data && typeof data === "object" && "error" in data ? (data as { error: string }).error : null) ?? res.statusText ?? "Request failed", status: res.status },
         { status: res.status }
@@ -93,7 +95,10 @@ export async function POST(req: NextRequest) {
     }
 
     const kind = successKind(functionName, data);
-    if (kind) await logEvent(visitor, kind);
+    if (kind) {
+      const answer = kind === "answered" ? (data as { answer?: unknown } | null)?.answer : undefined;
+      await logEvent({ visitor, kind, conversation_id, question: body.query, answer });
+    }
 
     return NextResponse.json(data);
   } catch (err) {

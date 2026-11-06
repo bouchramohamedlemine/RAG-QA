@@ -11,7 +11,7 @@ const ALERT_TO = "contact@bouchra.tech";
 const KEEP_DAYS = 30;
 
 /** Emails her the first time a limit is hit each day, with what happened and who used it most. */
-async function sendLimitAlert(detail: string) {
+async function sendLimitAlert(detail: string, conversationId?: string) {
   const { data: claimed } = await supabase
     .from("usage_alerts")
     .upsert({}, { onConflict: "day", ignoreDuplicates: true })
@@ -31,14 +31,27 @@ async function sendLimitAlert(detail: string) {
   for (const r of messages) counts.set(r.visitor, (counts.get(r.visitor) ?? 0) + 1);
   const top = [...counts].sort((a, b) => b[1] - a[1])[0];
 
+  // The conversation that was happening when the limit was hit
+  const { data: turns } = conversationId
+    ? await supabase
+        .from("usage_log")
+        .select("kind, question, answer")
+        .eq("conversation_id", conversationId)
+        .in("kind", ["answered", "off_topic", "no_documents", "limit_hit"])
+        .order("created_at", { ascending: true })
+        .limit(20)
+    : { data: [] };
+  const conversation = (turns ?? []).map((t) => `Q: ${t.question ?? ""}\nA: ${t.answer ? String(t.answer).slice(0, 400) : `(${t.kind})`}`);
+
   const text = [
     "RAG Q&A hit a limit, so visitors are now seeing the \"try again later\" message.",
     "",
     `What happened: ${detail}`,
     `Today so far: ${messages.length} messages from ${counts.size} visitors.`,
     top ? `Most active: visitor ${top[0]}, ${top[1]} messages.` : "",
+    conversation.length ? `\nThe conversation that hit the limit:\n\n${conversation.join("\n\n")}` : "",
     "",
-    "Totals: Supabase > Table Editor > usage_by_day. Details: usage_log.",
+    "Totals: Supabase > Table Editor > usage_by_day. Every question and answer: usage_log.",
   ].filter(Boolean).join("\n");
 
   const res = await fetch("https://api.resend.com/emails", {
@@ -61,7 +74,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
     }
 
-    const { visitor, kind, detail } = await req.json();
+    const { visitor, kind, detail, conversation_id, question, answer } = await req.json();
 
     if (!visitor || !kind) {
       return new Response(JSON.stringify({ error: "Missing visitor or kind" }), { status: 400 });
@@ -70,6 +83,9 @@ serve(async (req) => {
     const { error } = await supabase.from("usage_log").insert({
       visitor,
       kind,
+      conversation_id: conversation_id ?? null,
+      question: question ? String(question).slice(0, 500) : null,
+      answer: answer ? String(answer).slice(0, 10000) : null,
       detail: detail ? String(detail).slice(0, 500) : null,
     });
     if (error) throw error;
@@ -81,7 +97,7 @@ serve(async (req) => {
       await supabase.from("usage_alerts").delete().lt("sent_at", cutoff);
     }
 
-    const alert = kind === "limit_hit" ? await sendLimitAlert(String(detail ?? "A limit was reached")) : "none";
+    const alert = kind === "limit_hit" ? await sendLimitAlert(String(detail ?? "A limit was reached"), conversation_id) : "none";
 
     return new Response(JSON.stringify({ logged: true, alert }), {
       headers: { "Content-Type": "application/json" }

@@ -36,12 +36,13 @@ type Turn = {
 /** Call Supabase Edge Function via Next.js API proxy (avoids CORS / "Failed to fetch"). */
 async function invokeFunction<T>(
   name: string,
-  body: Record<string, unknown>
+  body: Record<string, unknown>,
+  conversationId?: string
 ): Promise<{ ok: true; data: T } | { ok: false; error: string }> {
   const res = await fetch("/api/invoke", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ functionName: name, body }),
+    body: JSON.stringify({ functionName: name, body, conversationId }),
   });
   const data = await res.json().catch(() => null);
   if (res.status === 503 && data?.code === "limit") return { ok: false, error: LIMIT_MESSAGE };
@@ -102,6 +103,7 @@ export default function ChatUI() {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [loading, setLoading] = useState(false);
   const lastTurnRef = useRef<HTMLElement>(null);
+  const conversationRef = useRef<string | null>(null);
   const turnCount = turns.length;
 
   useEffect(() => {
@@ -111,6 +113,8 @@ export default function ChatUI() {
   async function ask(query: string) {
     if (loading) return;
     setLoading(true);
+    conversationRef.current ??= crypto.randomUUID();
+    const conversationId = conversationRef.current;
     setTurns((prev) => [...prev, { query, status: "Rewriting the query…" }]);
 
     const update = (patch: Partial<Turn>) =>
@@ -120,7 +124,7 @@ export default function ChatUI() {
 
     try {
       // Query rewriter → off-topic check + retrieval-optimized query (falls back to the raw query if it fails)
-      const rewriteRes = await invokeFunction<{ on_topic: boolean; query: string }>(QUERY_REWRITER, { query });
+      const rewriteRes = await invokeFunction<{ on_topic: boolean; query: string }>(QUERY_REWRITER, { query }, conversationId);
       if (!rewriteRes.ok && rewriteRes.error === LIMIT_MESSAGE) return fail(LIMIT_MESSAGE);
       if (rewriteRes.ok && rewriteRes.data.on_topic === false) {
         update({ status: undefined, answer: OFF_TOPIC_ANSWER });
@@ -130,7 +134,7 @@ export default function ChatUI() {
 
       // 1️⃣ Document retriever → doc_ids + rerank scores
       update({ status: "Retrieving documents…" });
-      const docRes = await invokeFunction<DocWithScore[]>(DOCUMENT_RETRIEVER, { query: searchQuery });
+      const docRes = await invokeFunction<DocWithScore[]>(DOCUMENT_RETRIEVER, { query: searchQuery }, conversationId);
       if (!docRes.ok) return fail(docRes.error);
 
       const docs = docRes.data ?? [];
@@ -148,7 +152,7 @@ export default function ChatUI() {
         docs: docsForChunkRetriever,
         query: searchQuery,
         top_k: TOP_K,
-      });
+      }, conversationId);
       if (!chunkRes.ok) return fail(chunkRes.error);
 
       const context = chunkRes.data.context ?? [];
@@ -157,7 +161,7 @@ export default function ChatUI() {
 
       // 3️⃣ Generator → answer
       update({ status: "Generating the answer…" });
-      const genRes = await invokeFunction<{ answer: string }>(GENERATOR, { context, query });
+      const genRes = await invokeFunction<{ answer: string }>(GENERATOR, { context, query }, conversationId);
       if (!genRes.ok) return fail(genRes.error);
 
       update({ status: undefined, answer: genRes.data?.answer ?? "No answer generated.", papers });
@@ -171,6 +175,7 @@ export default function ChatUI() {
   function startOver() {
     if (loading) return;
     setTurns([]);
+    conversationRef.current = null;
     window.scrollTo(0, 0);
   }
 
