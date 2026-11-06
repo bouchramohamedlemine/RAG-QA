@@ -5,15 +5,17 @@ function RobotArt({ moving }: { moving: boolean }) {
       <g className={moving ? "sway" : undefined}>
         <rect x={52} y={36} width={116} height={106} rx={42} fill="var(--sheet)" />
 
-        {/* Glasses, with the eyes looking down at the paper */}
+        {/* Glasses. The eyes look down at the paper, and up at you while you type. */}
         <circle cx={86} cy={80} r={21} fill="var(--mist)" />
         <circle cx={134} cy={80} r={21} fill="var(--mist)" />
         <path d="M107 78 Q110 74 113 78 M65 78 H53 M155 78 H167" fill="none" />
+        <g className="gaze">
         <g className={moving ? "eyes" : undefined} stroke="none">
           <circle cx={87} cy={86} r={8.5} fill="var(--ink)" />
           <circle cx={135} cy={86} r={8.5} fill="var(--ink)" />
           <circle cx={90} cy={83} r={2.8} fill="var(--sheet)" />
           <circle cx={138} cy={83} r={2.8} fill="var(--sheet)" />
+        </g>
         </g>
         <path d="M104 110 Q110 115 116 110" fill="none" strokeWidth={2.6} />
       </g>

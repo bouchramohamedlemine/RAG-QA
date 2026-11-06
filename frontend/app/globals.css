@@ -147,6 +147,12 @@ button {
   transform-origin: center;
   animation: blink 3s infinite;
 }
+.gaze {
+  transition: transform 0.25s ease;
+}
+.seat:has(.box input:focus) .gaze {
+  transform: translate(-1px, -7px);
+}
 .rise {
   animation: rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
