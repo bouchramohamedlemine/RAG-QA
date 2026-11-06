@@ -631,6 +631,16 @@ body:has(.feedback-dialog[open]:not(.closing)) > :not(.feedback-dialog) {
 
 /* Smaller screens: top right, so it never covers the question box */
 @media (max-width: 1100px) {
+  /* Answers fade out under the two fixed buttons at the top */
+  .chat::before {
+    content: "";
+    position: fixed;
+    inset: 0 0 auto 0;
+    z-index: 4;
+    height: 84px;
+    background: linear-gradient(var(--paper) 66px, transparent);
+    pointer-events: none;
+  }
   .feedback-button {
     top: 16px;
     right: 16px;

@@ -130,7 +130,8 @@ export default function ChatUI() {
         update({ status: undefined, answer: OFF_TOPIC_ANSWER });
         return;
       }
-      const searchQuery = (rewriteRes.ok && rewriteRes.data.query) || query;
+      const rewritten = rewriteRes.ok ? rewriteRes.data.query : "";
+      const searchQuery = rewritten && rewritten.length <= 500 ? rewritten : query;
 
       // 1️⃣ Document retriever → doc_ids + rerank scores
       update({ status: "Retrieving documents…" });

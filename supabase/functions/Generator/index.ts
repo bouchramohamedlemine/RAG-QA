@@ -32,7 +32,7 @@ Your goal is to:
 
 Instructions:
 - Answer only from the context. Do not use your own knowledge, even to fill small gaps.
-- If the retrieved papers have findings related to the question but no single definitive answer, say so and report what they found, naming each paper. For example: "No paper names one best model, but this paper found...".
+- If the retrieved papers have findings related to the question but no single definitive answer, say so and report what they found, naming each paper. For example: "No paper settles this, but this paper found...".
 - If the context only partly answers the question, answer that part and say what the retrieved papers do not cover.
 - Only say that the retrieved papers do not answer the question if they contain nothing related to it. In that case, do not answer it yourself.
 - Each passage in the context starts with the title of its paper. When you state a finding, name the paper it came from and the setting it was tested in, if the passage gives one (for example, financial questions).
