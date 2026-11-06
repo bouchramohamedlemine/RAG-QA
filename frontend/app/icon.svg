@@ -8,6 +8,7 @@
     <circle cx="135" cy="85" r="9.5" fill="#1f2a37" stroke="none"/>
     <circle cx="90.500" cy="81.500" r="3" fill="#fffdf7" stroke="none"/>
     <circle cx="138.500" cy="81.500" r="3" fill="#fffdf7" stroke="none"/>
+    <path d="M101 107 Q110 115 119 107" fill="none"/>
     <path d="M110 126 C98 118 84 118 70 122 V154 C84 150 98 150 110 158 C122 150 136 150 150 154 V122 C136 118 122 118 110 126 Z" fill="#fffdf7"/>
     <path d="M110 126 V158" fill="none"/>
     <ellipse cx="68" cy="140" rx="11" ry="14" fill="#5b7c99"/>
