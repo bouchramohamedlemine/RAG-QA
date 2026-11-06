@@ -6,7 +6,7 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 );
 
-const FROM = "RAG Q&A feedback <forms@bouchra.tech>";
+const FROM = "RAG Q&A <forms@bouchra.tech>";
 const TO = "contact@bouchra.tech";
 const MAX_PER_DAY = 5;
 
@@ -42,7 +42,7 @@ serve(async (req) => {
         from: FROM,
         to: [TO],
         ...(email ? { reply_to: email } : {}),
-        subject: "RAG Q&A feedback",
+        subject: "New feedback",
         text: `${message}\n\nFrom: ${email || "no email given"}\nVisitor: ${visitor}`,
       }),
     });

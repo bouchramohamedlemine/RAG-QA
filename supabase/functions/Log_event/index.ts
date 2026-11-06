@@ -6,7 +6,7 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 );
 
-const ALERT_FROM = "RAG Q&A alerts <forms@bouchra.tech>";
+const ALERT_FROM = "RAG Q&A <forms@bouchra.tech>";
 const ALERT_TO = "contact@bouchra.tech";
 const KEEP_DAYS = 30;
 
@@ -47,7 +47,7 @@ async function sendLimitAlert(detail: string) {
     body: JSON.stringify({
       from: ALERT_FROM,
       to: [ALERT_TO],
-      subject: "RAG Q&A hit a limit",
+      subject: "Usage limit reached",
       text,
     }),
   });
