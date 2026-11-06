@@ -110,7 +110,6 @@ export default function About({ onStart }: { onStart: () => void }) {
             Bouchra Mohamed Lemine
           </a>
         </span>
-        <span>Questions and answers are saved for 30 days to improve this tool.</span>
         <span>Thank you to arXiv for use of its open access interoperability.</span>
       </footer>
     </>
