@@ -21,7 +21,7 @@ async function sendLimitAlert(detail: string) {
   const since = new Date(new Date().toISOString().slice(0, 10)).toISOString();
   const { data: rows } = await supabase
     .from("usage_log")
-    .select("visitor, kind, question")
+    .select("visitor, kind")
     .gte("created_at", since)
     .order("created_at", { ascending: false })
     .limit(2000);
@@ -30,7 +30,6 @@ async function sendLimitAlert(detail: string) {
   const counts = new Map<string, number>();
   for (const r of messages) counts.set(r.visitor, (counts.get(r.visitor) ?? 0) + 1);
   const top = [...counts].sort((a, b) => b[1] - a[1])[0];
-  const latest = messages.filter((r) => r.visitor === top?.[0]).slice(0, 5).map((r) => `- ${r.question}`);
 
   const text = [
     "RAG Q&A hit a limit, so visitors are now seeing the \"try again later\" message.",
@@ -38,9 +37,8 @@ async function sendLimitAlert(detail: string) {
     `What happened: ${detail}`,
     `Today so far: ${messages.length} messages from ${counts.size} visitors.`,
     top ? `Most active: visitor ${top[0]}, ${top[1]} messages.` : "",
-    latest.length ? `Their latest messages:\n${latest.join("\n")}` : "",
     "",
-    "Full log: Supabase > Table Editor > usage_log (and usage_by_day for totals).",
+    "Totals: Supabase > Table Editor > usage_by_day. Details: usage_log.",
   ].filter(Boolean).join("\n");
 
   const res = await fetch("https://api.resend.com/emails", {
@@ -63,7 +61,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
     }
 
-    const { visitor, kind, question, detail } = await req.json();
+    const { visitor, kind, detail } = await req.json();
 
     if (!visitor || !kind) {
       return new Response(JSON.stringify({ error: "Missing visitor or kind" }), { status: 400 });
@@ -72,7 +70,6 @@ serve(async (req) => {
     const { error } = await supabase.from("usage_log").insert({
       visitor,
       kind,
-      question: question ? String(question).slice(0, 500) : null,
       detail: detail ? String(detail).slice(0, 500) : null,
     });
     if (error) throw error;

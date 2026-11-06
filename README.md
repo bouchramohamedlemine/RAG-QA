@@ -16,7 +16,7 @@ We use a two-stage hierarchical retrieval with document gating.
 <img src="RAG.png" alt="RAG Architecture" width="640">
 
 
-The front-end calls four Supabase Edge Functions in order: `Query_rewriter`, `Document_retriever`, `Chunk_retriever` and `Generator`. Each message is logged in Supabase for 30 days against a scrambled visitor ID, and if OpenAI or Cohere hits a limit, visitors see a friendly message and I get an email.
+The front-end calls four Supabase Edge Functions in order: `Query_rewriter`, `Document_retriever`, `Chunk_retriever` and `Generator`. Usage is counted in Supabase for 30 days against a scrambled visitor ID, without saving the questions, and if OpenAI or Cohere hits a limit, visitors see a friendly message and I get an email.
 
 For the front-end we use Next.js (Typescript, React & Tailwind).
 

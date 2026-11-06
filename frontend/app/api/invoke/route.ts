@@ -33,9 +33,9 @@ function isValidRequest(functionName: string, body: Record<string, unknown>): bo
 }
 
 /** Logging must never break the answer, so its failures are only printed. */
-async function logEvent(visitor: string, kind: string, question?: unknown, detail?: string) {
+async function logEvent(visitor: string, kind: string, detail?: string) {
   try {
-    const res = await callEdgeFunction("Log_event", { visitor, kind, question, detail });
+    const res = await callEdgeFunction("Log_event", { visitor, kind, detail });
     if (!res.ok) console.error("[api/invoke] Log_event failed:", res.status);
   } catch (err) {
     console.error("[api/invoke] Log_event failed:", err);
@@ -82,10 +82,10 @@ export async function POST(req: NextRequest) {
     if (!res.ok) {
       const detail = `${functionName}: ${String((data && typeof data === "object" && "error" in data ? (data as { error: unknown }).error : null) ?? res.statusText)}`;
       if (LIMIT_ERROR.test(detail)) {
-        await logEvent(visitor, "limit_hit", body.query, detail);
+        await logEvent(visitor, "limit_hit", detail);
         return NextResponse.json({ error: "A usage limit was reached", code: "limit" }, { status: 503 });
       }
-      await logEvent(visitor, "error", body.query, detail);
+      await logEvent(visitor, "error", detail);
       return NextResponse.json(
         { error: (data && typeof data === "object" && "error" in data ? (data as { error: string }).error : null) ?? res.statusText ?? "Request failed", status: res.status },
         { status: res.status }
@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
     }
 
     const kind = successKind(functionName, data);
-    if (kind) await logEvent(visitor, kind, body.query);
+    if (kind) await logEvent(visitor, kind);
 
     return NextResponse.json(data);
   } catch (err) {

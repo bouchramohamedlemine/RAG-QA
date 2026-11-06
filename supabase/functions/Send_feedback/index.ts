@@ -48,12 +48,8 @@ serve(async (req) => {
     });
     if (!res.ok) throw new Error(`Resend failed: ${res.status} ${await res.text()}`);
 
-    const { error } = await supabase.from("usage_log").insert({
-      visitor,
-      kind: "feedback",
-      question: String(message).slice(0, 500),
-      detail: email || null,
-    });
+    // Only the count is kept, for the daily cap. The message itself is only in the email.
+    const { error } = await supabase.from("usage_log").insert({ visitor, kind: "feedback" });
     if (error) console.error("Could not log feedback:", error);
 
     return new Response(JSON.stringify({ sent: true }), { headers: { "Content-Type": "application/json" } });

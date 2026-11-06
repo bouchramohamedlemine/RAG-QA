@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/next";
 import type { Metadata } from "next";
 import Feedback from "./components/Feedback";
 import "./globals.css";
@@ -17,6 +18,7 @@ export default function RootLayout({
       <body className="antialiased">
         {children}
         <Feedback />
+        <Analytics />
       </body>
     </html>
   );
