@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 
-type Status = "idle" | "sending" | "sent" | "error" | "limit";
+type Status = "idle" | "sending" | "sent" | "error";
 
 const EXIT_MS = 160;
 
@@ -55,7 +55,6 @@ export default function Feedback() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, message, website }),
       });
-      if (res.status === 429) return setStatus("limit");
       if (!res.ok) return setStatus("error");
       setName("");
       setEmail("");
@@ -107,7 +106,6 @@ export default function Feedback() {
               <textarea id="feedback-message" rows={5} required maxLength={2000} value={message} onChange={(e) => setMessage(e.target.value)} />
               <input className="feedback-hidden" tabIndex={-1} autoComplete="off" aria-hidden="true" value={website} onChange={(e) => setWebsite(e.target.value)} />
               {status === "error" && <p role="alert">Sorry, that didn&apos;t send. Please try again.</p>}
-              {status === "limit" && <p role="alert">You&apos;ve sent a lot of feedback today. Thank you, and please try again tomorrow.</p>}
               <button type="submit" className="feedback-send" disabled={status === "sending"}>
                 <PaperPlane />
                 {status === "sending" ? "Sending…" : "Send"}

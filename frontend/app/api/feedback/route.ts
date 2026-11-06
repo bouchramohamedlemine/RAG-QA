@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     }
 
     const res = await callEdgeFunction("Send_feedback", { visitor: visitorId(req), name: sender, message: text, email: address });
-    if (!res.ok) return NextResponse.json({ error: "Could not send" }, { status: res.status === 429 ? 429 : 500 });
+    if (!res.ok) return NextResponse.json({ error: "Could not send" }, { status: 500 });
 
     return NextResponse.json({ sent: true });
   } catch {

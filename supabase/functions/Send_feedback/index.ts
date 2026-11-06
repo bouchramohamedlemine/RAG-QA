@@ -1,14 +1,7 @@
 import { serve } from "https://deno.land/std@0.203.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const supabase = createClient(
-  Deno.env.get("SUPABASE_URL")!,
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-);
 
 const FROM = "RAG Q&A <forms@bouchra.tech>";
 const TO = "contact@bouchra.tech";
-const MAX_PER_DAY = 5;
 
 serve(async (req) => {
   try {
@@ -20,19 +13,6 @@ serve(async (req) => {
 
     if (!visitor || !name || !message || !email) {
       return new Response(JSON.stringify({ error: "Missing visitor, name, email or message" }), { status: 400 });
-    }
-
-    // One visitor can't flood the inbox
-    const since = new Date(Date.now() - 86400000).toISOString();
-    const { count, error: countError } = await supabase
-      .from("usage_log")
-      .select("id", { count: "exact", head: true })
-      .eq("visitor", visitor)
-      .eq("kind", "feedback")
-      .gte("created_at", since);
-    if (countError) throw countError;
-    if ((count ?? 0) >= MAX_PER_DAY) {
-      return new Response(JSON.stringify({ error: "Too much feedback today" }), { status: 429 });
     }
 
     const res = await fetch("https://api.resend.com/emails", {
@@ -47,10 +27,6 @@ serve(async (req) => {
       }),
     });
     if (!res.ok) throw new Error(`Resend failed: ${res.status} ${await res.text()}`);
-
-    // Only the count is kept, for the daily cap. The message itself is only in the email.
-    const { error } = await supabase.from("usage_log").insert({ visitor, kind: "feedback" });
-    if (error) console.error("Could not log feedback:", error);
 
     return new Response(JSON.stringify({ sent: true }), { headers: { "Content-Type": "application/json" } });
 
