@@ -579,7 +579,7 @@ body:has(.feedback-dialog[open]:not(.closing)) > :not(.feedback-dialog) {
   margin-bottom: 16px;
   padding: 9px 12px;
   background: var(--paper);
-  border: 1px solid var(--soft);
+  border: 1.5px solid var(--line);
   border-radius: 8px;
   font: 400 17px/1.4 var(--body);
   resize: vertical;
