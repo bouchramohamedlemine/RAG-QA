@@ -145,7 +145,7 @@ button {
 .eyes {
   transform-box: fill-box;
   transform-origin: center;
-  animation: blink 5.5s infinite;
+  animation: blink 3s infinite;
 }
 .rise {
   animation: rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
@@ -158,8 +158,8 @@ button {
   50% { transform: rotate(1.6deg); }
 }
 @keyframes blink {
-  0%, 94%, 100% { transform: scaleY(1); }
-  97% { transform: scaleY(0.1); }
+  0%, 22%, 30%, 100% { transform: scaleY(1); }
+  26% { transform: scaleY(0.1); }
 }
 @keyframes rise {
   from { opacity: 0; transform: translateY(12px); }
