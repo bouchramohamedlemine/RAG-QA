@@ -4,6 +4,8 @@ import { useRef, useState } from "react";
 
 type Status = "idle" | "sending" | "sent" | "error" | "limit";
 
+const EXIT_MS = 160;
+
 function PaperPlane() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -28,8 +30,15 @@ export default function Feedback() {
     nameRef.current?.focus();
   }
 
+  // Play the exit animation first, then really close
   function close() {
-    dialogRef.current?.close();
+    const dialog = dialogRef.current;
+    if (!dialog?.open || dialog.classList.contains("closing")) return;
+    dialog.classList.add("closing");
+    window.setTimeout(() => {
+      dialog.close();
+      dialog.classList.remove("closing");
+    }, EXIT_MS);
   }
 
   function handleClosed() {
@@ -68,8 +77,12 @@ export default function Feedback() {
       <dialog
         ref={dialogRef}
         className="feedback-dialog"
-        aria-label="Send feedback"
+        aria-label="Share your thoughts"
         onClose={handleClosed}
+        onCancel={(e) => {
+          e.preventDefault();
+          close();
+        }}
         onClick={(e) => {
           if (e.target === dialogRef.current) close();
         }}
@@ -85,7 +98,7 @@ export default function Feedback() {
             <p className="feedback-thanks">Thank you for your feedback.</p>
           ) : (
             <form onSubmit={submit}>
-              <h2>Send feedback</h2>
+              <h2>Share your thoughts</h2>
               <label htmlFor="feedback-name">Name</label>
               <input id="feedback-name" ref={nameRef} required maxLength={100} autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
               <label htmlFor="feedback-email">Email</label>
