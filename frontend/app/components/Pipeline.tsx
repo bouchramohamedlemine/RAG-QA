@@ -1,7 +1,7 @@
 // The pipeline, in the style of the original diagram: a wide layout for larger screens and a tall one for phones.
 
 const DESCRIPTION =
-  "A query rewriter turns the user query into a retrieval-optimized query and passes it to the document retriever. Semantic and lexical search each return their top k documents, which are fused with RRF and reranked, and relative thresholding selects m documents. The chunk retriever combines each chunk's similarity score with its document score, the top n chunks go to the generator, and the generator writes the answer.";
+  "A query rewriter turns the user query into a retrieval-optimized query and passes it to the document retriever. Semantic and lexical search are fused with RRF, the top k documents are reranked, and relative thresholding selects m documents. The chunk retriever combines each chunk's similarity score with its document score, the top n chunks go to the generator, and the generator writes the answer.";
 
 function Text({ x, y, lines, gap, className }: { x: number; y: number; lines: string[]; gap: number; className: string }) {
   const top = y - ((lines.length - 1) * gap) / 2;
@@ -63,9 +63,9 @@ function Wide() {
         paths={[
           "M122 100 H162",
           "M302 100 H342",
-          "M492 50 H676 Q690 50 690 64 V74",
-          "M492 150 H676 Q690 150 690 136 V126",
-          "M746 100 H820",
+          "M492 50 H606 Q620 50 620 64 V74",
+          "M492 150 H606 Q620 150 620 136 V126",
+          "M676 100 H820",
           "M940 100 H1200",
           "M1279 160 V300",
           "M1200 308 H894 Q880 308 880 322 V336",
@@ -78,8 +78,8 @@ function Wide() {
       <Box x={2} y={40} w={120} h={120} lines={["User", "query"]} {...box} />
       <Box x={162} y={40} w={140} h={120} lines={["Query", "Rewriter"]} shaded {...box} />
       <Box x={342} y={40} w={150} h={120} lines={["Document", "Retriever"]} shaded {...box} />
-      <ellipse className="shape" cx={690} cy={100} rx={56} ry={26} />
-      <Text x={690} y={100} lines={["RRF"]} gap={32} className="name" />
+      <ellipse className="shape" cx={620} cy={100} rx={56} ry={26} />
+      <Text x={620} y={100} lines={["RRF"]} gap={32} className="name" />
       <Box x={820} y={40} w={120} h={120} lines={["Rerank"]} {...box} />
       <Box x={1200} y={40} w={158} h={120} lines={["Selected m", "docs"]} {...box} />
       <Box x={1200} y={300} w={158} h={120} lines={["Chunk", "Retriever"]} shaded {...box} />
@@ -87,9 +87,9 @@ function Wide() {
       <Box x={470} y={300} w={150} h={120} lines={["Generator"]} shaded {...box} />
       <Box x={170} y={300} w={150} h={120} lines={["Answer"]} {...box} />
 
-      <Text x={585} y={26} lines={["Semantic search"]} {...label} />
-      <Text x={585} y={174} lines={["lexical search"]} {...label} />
-      <Text x={563} y={100} lines={["Top k docs"]} {...label} />
+      <Text x={549} y={26} lines={["Semantic search"]} {...label} />
+      <Text x={549} y={174} lines={["lexical search"]} {...label} />
+      <Text x={748} y={78} lines={["Top k docs"]} {...label} />
       <Text x={1070} y={78} lines={["relative thresholding"]} {...label} />
       <Text x={1045} y={284} lines={["Chunk similarity score"]} {...label} />
       <Text x={1045} y={436} lines={["document score"]} {...label} />
@@ -133,9 +133,9 @@ function Tall() {
       <Box x={106} y={726} w={130} h={44} lines={["Generator"]} shaded {...box} />
       <Box x={106} y={830} w={130} h={44} lines={["Answer"]} {...box} />
 
-      <Text x={110} y={146} lines={["Semantic search"]} {...label} />
-      <Text x={232} y={146} lines={["lexical search"]} {...label} />
-      <Text x={171} y={168} lines={["Top k docs"]} {...label} />
+      <Text x={110} y={160} lines={["Semantic search"]} {...label} />
+      <Text x={232} y={160} lines={["lexical search"]} {...label} />
+      <Text x={171} y={254} lines={["Top k docs"]} {...label} />
       <Text x={171} y={363} lines={["relative thresholding"]} {...label} />
       <Text x={110} y={596} lines={["Chunk similarity", "score"]} {...label} />
       <Text x={232} y={596} lines={["document score"]} {...label} />
