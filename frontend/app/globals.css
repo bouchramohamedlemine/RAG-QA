@@ -641,17 +641,28 @@ body:has(.feedback-dialog[open]:not(.closing)) > :not(.feedback-dialog) {
     background: linear-gradient(var(--paper) 66px, transparent);
     pointer-events: none;
   }
+  /* On the home page it scrolls away with the page; only the chat page keeps it fixed */
   .feedback-button {
+    position: absolute;
     top: 16px;
     right: 16px;
     bottom: auto;
+  }
+  body:has(.chat) .feedback-button {
+    position: fixed;
   }
 }
 
 @media (max-width: 560px) {
   .box input { font-size: 16px; }
-  /* Phones: stack each stage so the formulas get the full width */
-  .steps > li { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  /* Room for the Feedback button above the title */
+  .hero { padding-top: 68px; }
+  /* Phones: the number stays beside the title, and the text and formulas below get the full width */
+  .steps > li { grid-template-columns: 40px minmax(0, 1fr); align-items: center; }
+  .stage { display: contents; }
+  .stage > :not(h3) { grid-column: 1 / -1; }
+  .stage h3 { margin-bottom: 0; }
+  .stage h3 + * { margin-top: 12px; }
   .formula { font-size: 15px; }
 }
 
