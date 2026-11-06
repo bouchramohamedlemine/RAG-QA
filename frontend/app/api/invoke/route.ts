@@ -1,9 +1,8 @@
-import { createHash } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { callEdgeFunction, visitorId } from "../edge";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
-const edgeSecret = process.env.EDGE_FUNCTION_SECRET ?? "";
 
 const MAX_QUERY_LENGTH = 500;
 const MAX_CONTEXT_CHUNKS = 10;
@@ -31,24 +30,6 @@ function isValidRequest(functionName: string, body: Record<string, unknown>): bo
     default:
       return false;
   }
-}
-
-/** Visitors are logged as a scrambled version of their IP address, so the address itself is never stored. */
-function visitorId(req: NextRequest): string {
-  const ip = req.headers.get("x-real-ip") ?? req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-  return createHash("sha256").update(`${ip}:${edgeSecret}`).digest("hex").slice(0, 8);
-}
-
-function callEdgeFunction(name: string, body: unknown) {
-  return fetch(`${supabaseUrl.replace(/\/$/, "")}/functions/v1/${name}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${supabaseAnonKey}`,
-      "x-edge-secret": edgeSecret,
-    },
-    body: JSON.stringify(body),
-  });
 }
 
 /** Logging must never break the answer, so its failures are only printed. */

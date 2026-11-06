@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Feedback from "./components/Feedback";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -13,7 +14,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" data-scroll-behavior="smooth">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        {children}
+        <Feedback />
+      </body>
     </html>
   );
 }
