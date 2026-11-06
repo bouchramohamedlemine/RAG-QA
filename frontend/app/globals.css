@@ -473,19 +473,11 @@ footer a:hover {
 }
 
 /* Feedback */
-.feedback {
-  position: fixed;
-  right: 24px;
-  bottom: 24px;
-  z-index: 6;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 10px;
-}
 .feedback-button,
-.feedback-send,
-.feedback-cancel {
+.feedback-send {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   padding: 9px 18px;
   border: 1.5px solid var(--ink);
   border-radius: 999px;
@@ -493,6 +485,10 @@ footer a:hover {
   transition: background 0.15s, color 0.15s;
 }
 .feedback-button {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 6;
   background: var(--sheet);
   color: var(--ink);
 }
@@ -500,14 +496,52 @@ footer a:hover {
   background: var(--denim);
   color: var(--sheet);
 }
-.feedback-panel {
-  width: min(340px, calc(100vw - 32px));
-  padding: 18px;
+.feedback-dialog {
+  width: min(440px, calc(100vw - 32px));
+  max-height: calc(100svh - 32px);
+  margin: auto;
+  padding: 0;
+  overflow: auto;
   background: var(--sheet);
+  color: var(--ink);
   border: 1.5px solid var(--ink);
-  border-radius: 14px;
-  box-shadow: 0 14px 34px rgb(31 42 55 / 0.14);
-  font-size: 17px;
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgb(31 42 55 / 0.25);
+}
+.feedback-dialog::backdrop {
+  background: rgb(31 42 55 / 0.2);
+}
+/* While the form is open, the page behind it is blurred and can't scroll */
+html:has(.feedback-dialog[open]) {
+  overflow: hidden;
+}
+body:has(.feedback-dialog[open]) > :not(.feedback-dialog) {
+  filter: blur(6px);
+}
+.feedback-panel {
+  position: relative;
+  padding: 26px;
+  font-size: 18px;
+}
+.feedback-panel h2 {
+  margin-bottom: 18px;
+  padding-right: 32px;
+  font: 400 26px/1.2 var(--display);
+}
+.feedback-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: var(--ink);
+  transition: background 0.15s;
+}
+.feedback-close:hover {
+  background: var(--mist);
 }
 .feedback-panel label {
   display: block;
@@ -517,8 +551,8 @@ footer a:hover {
 .feedback-panel input {
   display: block;
   width: 100%;
-  margin-bottom: 14px;
-  padding: 8px 10px;
+  margin-bottom: 16px;
+  padding: 9px 12px;
   background: var(--paper);
   border: 1px solid var(--soft);
   border-radius: 8px;
@@ -531,15 +565,15 @@ footer a:hover {
   width: 1px;
   height: 1px;
 }
-.feedback-panel p {
+.feedback-panel [role="alert"] {
   margin-bottom: 14px;
 }
-.feedback-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
+.feedback-thanks {
+  padding: 18px 40px 18px 0;
 }
 .feedback-send {
+  width: 100%;
+  justify-content: center;
   background: var(--ink);
   color: var(--sheet);
 }
@@ -550,9 +584,6 @@ footer a:hover {
   opacity: 0.4;
   cursor: default;
 }
-.feedback-cancel:hover {
-  background: var(--paper);
-}
 
 @media (max-width: 900px) {
   .pipeline .wide { display: none; }
@@ -561,11 +592,10 @@ footer a:hover {
 
 /* Smaller screens: top right, so it never covers the question box */
 @media (max-width: 1100px) {
-  .feedback {
+  .feedback-button {
     top: 16px;
     right: 16px;
     bottom: auto;
-    flex-direction: column-reverse;
   }
 }
 

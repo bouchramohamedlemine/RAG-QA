@@ -16,10 +16,10 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
     }
 
-    const { visitor, message, email } = await req.json();
+    const { visitor, name, message, email } = await req.json();
 
-    if (!visitor || !message) {
-      return new Response(JSON.stringify({ error: "Missing visitor or message" }), { status: 400 });
+    if (!visitor || !name || !message || !email) {
+      return new Response(JSON.stringify({ error: "Missing visitor, name, email or message" }), { status: 400 });
     }
 
     // One visitor can't flood the inbox
@@ -41,9 +41,9 @@ serve(async (req) => {
       body: JSON.stringify({
         from: FROM,
         to: [TO],
-        ...(email ? { reply_to: email } : {}),
+        reply_to: email,
         subject: "New feedback",
-        text: `${message}\n\nFrom: ${email || "no email given"}\nVisitor: ${visitor}`,
+        text: `${message}\n\nFrom: ${name} <${email}>\nVisitor: ${visitor}`,
       }),
     });
     if (!res.ok) throw new Error(`Resend failed: ${res.status} ${await res.text()}`);
