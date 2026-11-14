@@ -1,0 +1,245 @@
+[
+  {
+    "name": "first message: definition",
+    "history": [],
+    "message": "what is rag",
+    "on_topic": true,
+    "must": [
+      "definition",
+      "Retrieval-Augmented Generation"
+    ]
+  },
+  {
+    "name": "first message: misspelled comparison",
+    "history": [],
+    "message": "hyde vs dense retrievl?",
+    "on_topic": true,
+    "must": [
+      "HyDE",
+      "dense retrieval"
+    ]
+  },
+  {
+    "name": "first message: greeting",
+    "history": [],
+    "message": "hi",
+    "on_topic": false
+  },
+  {
+    "name": "pronoun: which one",
+    "history": [
+      {
+        "question": "hyde vs dense retrieval?",
+        "query": "Comparison of HyDE and dense retrieval",
+        "answer": "HyDE asks an LLM to write a hypothetical document and embeds it, while dense retrieval embeds the query directly. One paper found HyDE improves zero-shot recall."
+      }
+    ],
+    "message": "which one is faster?",
+    "on_topic": true,
+    "must": [
+      "HyDE",
+      "dense",
+      "latency|speed|fast|efficien|time|cost"
+    ]
+  },
+  {
+    "name": "pronoun: it",
+    "history": [
+      {
+        "question": "what is colbert",
+        "query": "What is the definition of ColBERT?",
+        "answer": "ColBERT is a late-interaction retrieval model that encodes queries and documents into token-level embeddings and scores them with MaxSim."
+      }
+    ],
+    "message": "how is it different from normal dense retrieval?",
+    "on_topic": true,
+    "must": [
+      "ColBERT",
+      "dense"
+    ]
+  },
+  {
+    "name": "ellipsis: what about",
+    "history": [
+      {
+        "question": "bm25 or dense retrieval, which is better?",
+        "query": "Comparison of BM25 and dense retrieval performance",
+        "answer": "The retrieved papers report that dense retrieval outperforms BM25 on most open-domain benchmarks, while BM25 remains strong on exact-match queries."
+      }
+    ],
+    "message": "what about for long documents?",
+    "on_topic": true,
+    "must": [
+      "BM25",
+      "dense",
+      "long"
+    ]
+  },
+  {
+    "name": "fields, nothing named: no invented examples",
+    "history": [
+      {
+        "question": "what is rag",
+        "query": "What is the definition of Retrieval-Augmented Generation (RAG)?",
+        "answer": "RAG combines a retriever that finds relevant documents with a generator that writes an answer grounded in them."
+      }
+    ],
+    "message": "in which fields?",
+    "on_topic": true,
+    "must": [
+      "field|domain|application|area"
+    ],
+    "must_not": [
+      "health|medic|clinic|financ|legal|\\blaw\\b|educat|scien"
+    ]
+  },
+  {
+    "name": "fields, user names them",
+    "history": [
+      {
+        "question": "Can you tell me the three most popular areas that RAG is applied to?",
+        "query": "What are the main application areas of Retrieval-Augmented Generation (RAG)?",
+        "answer": "The retrieved papers name open-domain question answering, conversational agents and personalized recommendations."
+      }
+    ],
+    "message": "Yes, but these domains: in which fields? In healthcare, in science, in finance, legal? Which field?",
+    "on_topic": true,
+    "must": [
+      "health",
+      "scien",
+      "financ",
+      "legal|\\blaw\\b"
+    ]
+  },
+  {
+    "name": "clarification kept, then 'any other' (the reported bug)",
+    "history": [
+      {
+        "question": "what is rag",
+        "query": "What is the definition of Retrieval-Augmented Generation (RAG)?",
+        "answer": "RAG is a framework that combines a neural retrieval module with a text-generation module for knowledge-intensive tasks."
+      },
+      {
+        "question": "in which fields is it used most",
+        "query": "Applications of Retrieval-Augmented Generation (RAG) in various fields",
+        "answer": "The retrieved papers indicate RAG is applied to open-domain question answering, conversational agents, personalized recommendations, software engineering tasks such as code generation and program repair, and multimodal content such as audio, images and video."
+      },
+      {
+        "question": "i mean domains, things like healthcare or education",
+        "query": "Applications of Retrieval-Augmented Generation (RAG) in domains such as healthcare and education",
+        "answer": "In healthcare, RAG supports knowledge retrieval and decision-making, for example in Traditional Chinese Medicine, infectious disease chatbots and precision medicine. In the legal sector, RAG helps with legal research and drafting, for example CBR-RAG. The retrieved papers do not cover education."
+      }
+    ],
+    "message": "any other fields",
+    "on_topic": true,
+    "must": [
+      "domain|industr|sector|health|legal|\\blaw\\b|educat",
+      "other|beyond|besides|excluding|apart|aside|except|additional"
+    ]
+  },
+  {
+    "name": "clarification: narrowing scope",
+    "history": [
+      {
+        "question": "should i rerank?",
+        "query": "Does reranking improve retrieval quality?",
+        "answer": "Several papers found that cross-encoder reranking improves precision at the cost of latency."
+      }
+    ],
+    "message": "I meant with small models, like 7B ones",
+    "on_topic": true,
+    "must": [
+      "rerank",
+      "small|7B"
+    ]
+  },
+  {
+    "name": "follow-up on the answer's content",
+    "history": [
+      {
+        "question": "what chunking strategies are there?",
+        "query": "What chunking strategies are used for document retrieval?",
+        "answer": "The retrieved papers describe fixed-size chunking, sentence-based chunking and semantic chunking that splits at topic changes."
+      }
+    ],
+    "message": "which of those works best for PDFs?",
+    "on_topic": true,
+    "must": [
+      "chunk",
+      "PDF"
+    ]
+  },
+  {
+    "name": "besides one option",
+    "history": [
+      {
+        "question": "what retrieval methods are used?",
+        "query": "What retrieval methods are used for document retrieval?",
+        "answer": "The retrieved papers describe sparse retrieval such as BM25, dense retrieval with embeddings, and hybrid search that combines both."
+      }
+    ],
+    "message": "anything besides hybrid search?",
+    "on_topic": true,
+    "must": [
+      "hybrid",
+      "other|besides|beyond|excluding|apart|aside|except|alternative"
+    ]
+  },
+  {
+    "name": "tell me more",
+    "history": [
+      {
+        "question": "what is semantic chunking",
+        "query": "What is the definition of semantic chunking?",
+        "answer": "Semantic chunking splits a document where the topic changes, using embedding similarity between neighbouring sentences."
+      }
+    ],
+    "message": "tell me more",
+    "on_topic": true,
+    "must": [
+      "semantic chunking"
+    ]
+  },
+  {
+    "name": "topic switch",
+    "history": [
+      {
+        "question": "hyde vs dense retrieval",
+        "query": "Comparison of HyDE and dense retrieval",
+        "answer": "HyDE embeds a hypothetical document written by an LLM, while dense retrieval embeds the query directly."
+      }
+    ],
+    "message": "ok different question, how do people evaluate a RAG system?",
+    "on_topic": true,
+    "must": [
+      "evaluat"
+    ],
+    "must_not": [
+      "HyDE"
+    ]
+  },
+  {
+    "name": "thanks mid-conversation",
+    "history": [
+      {
+        "question": "should i rerank?",
+        "query": "Does reranking improve retrieval quality?",
+        "answer": "Several papers found that cross-encoder reranking improves precision at the cost of latency."
+      }
+    ],
+    "message": "thanks, that helps!",
+    "on_topic": false
+  },
+  {
+    "name": "unrelated mid-conversation",
+    "history": [
+      {
+        "question": "bm25 or dense retrieval?",
+        "query": "Comparison of BM25 and dense retrieval performance",
+        "answer": "Dense retrieval outperforms BM25 on most open-domain benchmarks."
+      }
+    ],
+    "message": "what's the weather like in Paris today?",
+    "on_topic": false
+  }
+]

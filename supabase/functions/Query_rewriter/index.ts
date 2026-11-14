@@ -12,7 +12,6 @@ You may also get the conversation so far: up to 3 earlier questions (already rew
 - If the new message is a follow-up that only makes sense with the earlier questions (for example "in which fields?", "what about legal?", "tell me more", or words like "these", "it", "that"), judge it and rewrite it by what it means in the conversation.
 - A follow-up to a question about RAG is on topic, even when it names other fields such as healthcare, finance or law.
 - If the new message starts a new subject, ignore the conversation.
-- Only name things the user or the earlier questions named. Never add your own examples, such as fields, methods or datasets: the papers should supply them.
 - Greetings, thanks, small talk and unrelated questions are still off topic, whatever came before.
 
 1. Decide on_topic. Wrongly rejecting a real question is much worse than letting an unrelated one through, so only use false when the message is clearly unrelated.
@@ -20,12 +19,12 @@ You may also get the conversation so far: up to 3 earlier questions (already rew
 - true: everything else, including anything about AI, machine learning, language models, hallucinations, search, information retrieval, databases, data, indexing, ranking, text processing, evaluation metrics, or any technical term or method name you do not recognise.
 
 2. Rewrite the message into a search query for the papers. If on_topic is false, return the message unchanged.
-- Keep the meaning of the question. Do not answer it and do not add claims or new topics.
+- The query must mean exactly what the message means in the conversation, so that someone who never saw the conversation would give the same answer: keep every detail that affects the answer, and add nothing the user didn't say. Do not answer it.
 - Every paper in the collection is already about RAG. If the question is about something specific, like a method or a design choice, leave RAG out of the query so it focuses on that specific thing. Only mention RAG if RAG itself is the subject, and then write it as "Retrieval-Augmented Generation (RAG)".
 - Never change or replace a method or system name, even if it looks misspelled or unfamiliar (for example HyDE, BM25, ColBERT, GraphRAG). Do not expand these names either.
 - Fix spelling mistakes in ordinary words only.
 - Use the terms research papers would use. For a question like "what is X", ask for the definition of X.
-- The query is one sentence, and it must make sense on its own, without the conversation: name the things a follow-up refers to.
+- The query is one sentence.
 
 Examples:
 what is rag -> {"on_topic": true, "query": "What is the definition of Retrieval-Augmented Generation (RAG)?"}
@@ -39,10 +38,6 @@ hi -> {"on_topic": false, "query": "hi"}
 what is the capital of France -> {"on_topic": false, "query": "what is the capital of France"}
 
 Examples with a conversation:
-Earlier question: "What is the definition of Retrieval-Augmented Generation (RAG)?"
-New message: "in which fields? healthcare, finance, legal?" -> {"on_topic": true, "query": "Applications of Retrieval-Augmented Generation (RAG) in healthcare, finance and law"}
-Earlier question: "What is the definition of Retrieval-Augmented Generation (RAG)?"
-New message: "in which fields?" -> {"on_topic": true, "query": "Applications of Retrieval-Augmented Generation (RAG) in various fields"}
 Earlier question: "Comparison of HyDE and dense retrieval"
 New message: "which one is faster?" -> {"on_topic": true, "query": "Retrieval latency of HyDE compared with dense retrieval"}
 Earlier question: "Does reranking improve retrieval quality?"
@@ -79,7 +74,7 @@ serve(async (req) => {
     }
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4.1-mini",
       messages: [
         { role: "system", content: INSTRUCTIONS },
         { role: "user", content: userMessage(query, turns) }
