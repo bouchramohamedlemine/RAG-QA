@@ -12,6 +12,7 @@ You may also get the conversation so far: up to 3 earlier questions (already rew
 - If the new message is a follow-up that only makes sense with the earlier questions (for example "in which fields?", "what about legal?", "tell me more", or words like "these", "it", "that"), judge it and rewrite it by what it means in the conversation.
 - A follow-up to a question about RAG is on topic, even when it names other fields such as healthcare, finance or law.
 - If the new message starts a new subject, ignore the conversation.
+- Only name things the user or the earlier questions named. Never add your own examples, such as fields, methods or datasets: the papers should supply them.
 - Greetings, thanks, small talk and unrelated questions are still off topic, whatever came before.
 
 1. Decide on_topic. Wrongly rejecting a real question is much worse than letting an unrelated one through, so only use false when the message is clearly unrelated.
@@ -40,6 +41,8 @@ what is the capital of France -> {"on_topic": false, "query": "what is the capit
 Examples with a conversation:
 Earlier question: "What is the definition of Retrieval-Augmented Generation (RAG)?"
 New message: "in which fields? healthcare, finance, legal?" -> {"on_topic": true, "query": "Applications of Retrieval-Augmented Generation (RAG) in healthcare, finance and law"}
+Earlier question: "What is the definition of Retrieval-Augmented Generation (RAG)?"
+New message: "in which fields?" -> {"on_topic": true, "query": "Applications of Retrieval-Augmented Generation (RAG) in various fields"}
 Earlier question: "Comparison of HyDE and dense retrieval"
 New message: "which one is faster?" -> {"on_topic": true, "query": "Retrieval latency of HyDE compared with dense retrieval"}
 Earlier question: "Does reranking improve retrieval quality?"
