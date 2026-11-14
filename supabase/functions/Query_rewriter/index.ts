@@ -8,6 +8,12 @@ const openai = new OpenAI({
 const INSTRUCTIONS = `
 You read a user's message for an assistant that only knows research papers on Retrieval-Augmented Generation (RAG). Do two things and return JSON: {"on_topic": true or false, "query": "..."}.
 
+You may also get the conversation so far: up to 3 earlier questions (already rewritten as search queries) and their answers. Use it like this:
+- If the new message is a follow-up that only makes sense with the earlier questions (for example "in which fields?", "what about legal?", "tell me more", or words like "these", "it", "that"), judge it and rewrite it by what it means in the conversation.
+- A follow-up to a question about RAG is on topic, even when it names other fields such as healthcare, finance or law.
+- If the new message starts a new subject, ignore the conversation.
+- Greetings, thanks, small talk and unrelated questions are still off topic, whatever came before.
+
 1. Decide on_topic. Wrongly rejecting a real question is much worse than letting an unrelated one through, so only use false when the message is clearly unrelated.
 - false: only greetings, thanks, small talk, questions about the assistant, and subjects clearly outside computing, such as cooking, sport, history, or general life questions.
 - true: everything else, including anything about AI, machine learning, language models, hallucinations, search, information retrieval, databases, data, indexing, ranking, text processing, evaluation metrics, or any technical term or method name you do not recognise.
@@ -18,7 +24,7 @@ You read a user's message for an assistant that only knows research papers on Re
 - Never change or replace a method or system name, even if it looks misspelled or unfamiliar (for example HyDE, BM25, ColBERT, GraphRAG). Do not expand these names either.
 - Fix spelling mistakes in ordinary words only.
 - Use the terms research papers would use. For a question like "what is X", ask for the definition of X.
-- The query is one sentence.
+- The query is one sentence, and it must make sense on its own, without the conversation: name the things a follow-up refers to.
 
 Examples:
 what is rag -> {"on_topic": true, "query": "What is the definition of Retrieval-Augmented Generation (RAG)?"}
@@ -30,7 +36,29 @@ what is a graph database -> {"on_topic": true, "query": "What is the definition 
 why does my model make things up -> {"on_topic": true, "query": "Why do language models generate unsupported claims?"}
 hi -> {"on_topic": false, "query": "hi"}
 what is the capital of France -> {"on_topic": false, "query": "what is the capital of France"}
+
+Examples with a conversation:
+Earlier question: "What is the definition of Retrieval-Augmented Generation (RAG)?"
+New message: "in which fields? healthcare, finance, legal?" -> {"on_topic": true, "query": "Applications of Retrieval-Augmented Generation (RAG) in healthcare, finance and law"}
+Earlier question: "Comparison of HyDE and dense retrieval"
+New message: "which one is faster?" -> {"on_topic": true, "query": "Retrieval latency of HyDE compared with dense retrieval"}
+Earlier question: "Does reranking improve retrieval quality?"
+New message: "thanks!" -> {"on_topic": false, "query": "thanks!"}
 `;
+
+const MAX_HISTORY = 3;
+const MAX_ANSWER_LENGTH = 1000;
+
+type Turn = { question: string; answer: string };
+
+/** The new message alone, or with the conversation before it when there is one. */
+function userMessage(query: string, history: Turn[]): string {
+  if (history.length === 0) return query;
+  const turns = history
+    .map((t, i) => `Earlier question ${i + 1}: ${t.question}\nAnswer ${i + 1}: ${t.answer.slice(0, MAX_ANSWER_LENGTH)}`)
+    .join("\n\n");
+  return `Conversation so far (oldest first):\n${turns}\n\nNew message: ${query}`;
+}
 
 serve(async (req) => {
   try {
@@ -38,7 +66,10 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
     }
 
-    const { query } = await req.json();
+    const { query, history } = await req.json();
+    const turns: Turn[] = (Array.isArray(history) ? history : [])
+      .filter((t) => typeof t?.question === "string" && typeof t?.answer === "string")
+      .slice(-MAX_HISTORY);
 
     if (!query) {
       return new Response(JSON.stringify({ error: "Missing query" }), { status: 400 });
@@ -48,7 +79,7 @@ serve(async (req) => {
       model: "gpt-4o-mini",
       messages: [
         { role: "system", content: INSTRUCTIONS },
-        { role: "user", content: query }
+        { role: "user", content: userMessage(query, turns) }
       ],
       temperature: 0,
       max_tokens: 150,

@@ -59,7 +59,17 @@ export default function About({ onStart }: { onStart: () => void }) {
           </Stage>
 
           <Stage number={2} title="Query Rewriting">
-            <p>Raw user queries should not go directly to the retriever. GPT rewrites each query into a retrieval-optimized query, which is used for retrieval. The answer is still generated for the original question. Messages that are not about RAG are filtered out here, without searching the papers.</p>
+            <p>Raw user queries should not go directly to the retriever. In one call, the language model filters the message and rewrites it into a search query, resolving follow-ups.</p>
+            <ul className="points">
+              <li><strong>Conversation history:</strong> the browser keeps each question that got a real answer from the papers (off-topic messages and errors are not kept), and sends the last 3 questions and answers with every new message (past answers cut to 1,000 characters). Both the filtering and the rewriting below use them.</li>
+              <li><strong>History-aware topic filtering:</strong> messages that are not about RAG are filtered out, without searching the papers. The message is judged together with the history, so after a RAG question, &ldquo;in which fields? healthcare, finance, legal?&rdquo; counts as a follow-up, while &ldquo;hi&rdquo; is still filtered out.</li>
+              <li><strong>Rewriting:</strong> the language model rewrites the message into one standalone, retrieval-optimized query: a follow-up is made to make sense on its own, in the terms papers use, e.g. &ldquo;in which fields?&rdquo; → &ldquo;Applications of Retrieval-Augmented Generation in healthcare, finance and law&rdquo;. Retrieval searches with this query, the final answer is written for it, and it, not the original message, is what gets saved in the history, so each saved question makes sense even after the earlier ones leave the last 3.</li>
+            </ul>
+            <p className="refs">
+              <a href="https://aclanthology.org/D19-1605/" target="_blank" rel="noopener noreferrer">CANARD</a> defined rewriting follow-ups into standalone questions,{" "}
+              <a href="https://arxiv.org/abs/2010.04898" target="_blank" rel="noopener noreferrer">QReCC</a> applied it to search and answer,{" "}
+              and <a href="https://arxiv.org/abs/2303.06573" target="_blank" rel="noopener noreferrer">LLM4CS</a> showed an LLM can do it from a prompt.
+            </p>
           </Stage>
 
           <Stage number={3} title="Document Retrieval">

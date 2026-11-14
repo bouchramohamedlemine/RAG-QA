@@ -8,15 +8,34 @@ const MAX_QUERY_LENGTH = 500;
 const MAX_CONTEXT_CHUNKS = 10;
 const MAX_CHUNK_LENGTH = 6000;
 const MAX_DOCS = 60;
+const MAX_HISTORY_TURNS = 3;
+const MAX_HISTORY_ANSWER_LENGTH = 1000;
 
 // How OpenAI and Cohere report that a usage or spending limit was reached
 const LIMIT_ERROR = /\b429\b|quota|rate.?limit|insufficient|exceeded|trial/i;
+
+/** Conversation history is optional; when sent, it's at most 3 short question–answer pairs. */
+function isValidHistory(history: unknown): boolean {
+  if (history === undefined) return true;
+  return (
+    Array.isArray(history) &&
+    history.length <= MAX_HISTORY_TURNS &&
+    history.every(
+      (turn) =>
+        typeof turn?.question === "string" &&
+        turn.question.length <= MAX_QUERY_LENGTH &&
+        typeof turn?.answer === "string" &&
+        turn.answer.length <= MAX_HISTORY_ANSWER_LENGTH
+    )
+  );
+}
 
 /** Only the four pipeline functions can be called, with inputs the size the site really sends. */
 function isValidRequest(functionName: string, body: Record<string, unknown>): boolean {
   if (typeof body.query !== "string" || !body.query.trim() || body.query.length > MAX_QUERY_LENGTH) return false;
   switch (functionName) {
     case "Query_rewriter":
+      return isValidHistory(body.history);
     case "Document_retriever":
       return true;
     case "Chunk_retriever":

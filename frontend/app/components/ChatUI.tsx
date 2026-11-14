@@ -12,6 +12,10 @@ const GENERATOR = "Generator";
 
 const TOP_K = 10;
 
+// Follow-ups are understood from the last few answered questions
+const HISTORY_TURNS = 3;
+const HISTORY_ANSWER_LENGTH = 1000;
+
 const LIMIT_MESSAGE = "I've used up my research budget for now. Please try again later.";
 
 const OFF_TOPIC_ANSWER = "I've only read research papers about RAG, so that's all I can talk about. Ask me anything about it!";
@@ -31,7 +35,18 @@ type Turn = {
   answer?: string;
   papers?: Paper[];
   error?: string;
+  /** Set only when the papers answered it: the standalone query the answer was written for, kept as history */
+  rewritten?: string;
 };
+type HistoryTurn = { question: string; answer: string };
+
+/** The last answered questions, as standalone queries with their answers cut short. Refusals and errors are left out. */
+function conversationHistory(turns: Turn[]): HistoryTurn[] {
+  return turns
+    .filter((t) => t.rewritten && t.answer)
+    .slice(-HISTORY_TURNS)
+    .map((t) => ({ question: t.rewritten!, answer: t.answer!.slice(0, HISTORY_ANSWER_LENGTH) }));
+}
 
 /** Call Supabase Edge Function via Next.js API proxy (avoids CORS / "Failed to fetch"). */
 async function invokeFunction<T>(
@@ -115,6 +130,7 @@ export default function ChatUI() {
     setLoading(true);
     conversationRef.current ??= crypto.randomUUID();
     const conversationId = conversationRef.current;
+    const history = conversationHistory(turns);
     setTurns((prev) => [...prev, { query, status: "Rewriting the query…" }]);
 
     const update = (patch: Partial<Turn>) =>
@@ -123,8 +139,8 @@ export default function ChatUI() {
       update(error === LIMIT_MESSAGE ? { status: undefined, answer: LIMIT_MESSAGE } : { status: undefined, error });
 
     try {
-      // Query rewriter → off-topic check + retrieval-optimized query (falls back to the raw query if it fails)
-      const rewriteRes = await invokeFunction<{ on_topic: boolean; query: string }>(QUERY_REWRITER, { query }, conversationId);
+      // Query rewriter → history-aware off-topic check + standalone, retrieval-optimized query (falls back to the raw query if it fails)
+      const rewriteRes = await invokeFunction<{ on_topic: boolean; query: string }>(QUERY_REWRITER, { query, history }, conversationId);
       if (!rewriteRes.ok && rewriteRes.error === LIMIT_MESSAGE) return fail(LIMIT_MESSAGE);
       if (rewriteRes.ok && rewriteRes.data.on_topic === false) {
         update({ status: undefined, answer: OFF_TOPIC_ANSWER });
@@ -160,12 +176,13 @@ export default function ChatUI() {
       const titles = new Map(context.map((c) => [c.doc_id, c.title ?? ""]));
       const papers = [...titles].map(([id, title]) => ({ id, title: title || id }));
 
-      // 3️⃣ Generator → answer
+      // 3️⃣ Generator → answer, written for the standalone query so follow-ups make sense
       update({ status: "Generating the answer…" });
-      const genRes = await invokeFunction<{ answer: string }>(GENERATOR, { context, query }, conversationId);
+      const genRes = await invokeFunction<{ answer: string }>(GENERATOR, { context, query: searchQuery }, conversationId);
       if (!genRes.ok) return fail(genRes.error);
 
-      update({ status: undefined, answer: genRes.data?.answer ?? "No answer generated.", papers });
+      const answer = genRes.data?.answer;
+      update({ status: undefined, answer: answer ?? "No answer generated.", papers, rewritten: answer ? searchQuery : undefined });
     } catch (err) {
       fail(err instanceof Error ? err.message : String(err));
     } finally {

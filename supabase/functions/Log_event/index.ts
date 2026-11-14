@@ -8,7 +8,6 @@ const supabase = createClient(
 
 const ALERT_FROM = "RAG Q&A <forms@bouchra.tech>";
 const ALERT_TO = "contact@bouchra.tech";
-const KEEP_DAYS = 30;
 
 /** Emails her the first time a limit is hit each day, with what happened and who used it most. */
 async function sendLimitAlert(detail: string, conversationId?: string) {
@@ -89,13 +88,6 @@ serve(async (req) => {
       detail: detail ? String(detail).slice(0, 500) : null,
     });
     if (error) throw error;
-
-    // Keep the table small: now and then, remove anything older than 30 days
-    if (Math.random() < 0.02) {
-      const cutoff = new Date(Date.now() - KEEP_DAYS * 86400000).toISOString();
-      await supabase.from("usage_log").delete().lt("created_at", cutoff);
-      await supabase.from("usage_alerts").delete().lt("sent_at", cutoff);
-    }
 
     const alert = kind === "limit_hit" ? await sendLimitAlert(String(detail ?? "A limit was reached"), conversation_id) : "none";
 
